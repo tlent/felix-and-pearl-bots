@@ -1,0 +1,22 @@
+name: FelixBot Deploy
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: cargo install cross --git https://github.com/cross-rs/cross
+    - run: cross build --release --target=aarch64-unknown-linux-gnu
+    - run: |
+        eval $(ssh-agent -s)
+        echo '${{ secrets.SSH_PRIVATE_KEY }}' | ssh-add -
+        install -m 600 -D /dev/null ~/.ssh/known_hosts
+        echo '${{ vars.SSH_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
+        scp ./target/aarch64-unknown-linux-gnu/release/felix-bot '${{ vars.SSH_DESTINATION }}:~'
+        ssh '${{ vars.SSH_DESTINATION }}' '
+          sudo systemctl stop felix-bot.service;
+          sudo mv ~/felix-bot /usr/local/bin/felix-bot;
+          sudo systemctl start felix-bot.service'
