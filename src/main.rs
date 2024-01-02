@@ -50,7 +50,7 @@ async fn main() {
     let national_day_text = element.text().collect::<Vec<_>>().join("");
     let message =
         format!("{national_day_text}\n[Read more]({NATIONAL_DAYS_BASE_URL}{read_more_url})");
-    if let Err(err) = ChannelId::new(1191225413758894130)
+    if let Err(err) = ChannelId::new(1108866354980855961)
         .say(&client.http, message)
         .await
     {
