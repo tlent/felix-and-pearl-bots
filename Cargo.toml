@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-regex = "1.10.2"
+flate2 = "1.0.28"
+reqwest = "0.11.23"
+scraper = "0.18.1"
 serenity = { version = "0.12", default-features = false, features = ["client", "gateway", "rustls_backend", "model"] }
-time = { version = "0.3.31", features = ["local-offset", "macros"]}
 tokio = { version = "1.34", features = ["macros", "rt-multi-thread"] }
