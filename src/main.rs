@@ -1,23 +1,21 @@
+use reqwest::header::AUTHORIZATION;
+use reqwest::{Client, Response, Result};
 use rusqlite::OptionalExtension;
-use serenity::all::ChannelId;
-use serenity::prelude::*;
 use std::env;
 use time::macros::format_description;
 use time::OffsetDateTime;
 
+const NATIONAL_DAY_BASE_URL: &str = "https://www.nationaldaycalendar.com";
+const DISCORD_API_URL: &str = "https://discord.com/api/v10";
 const DB_PATH: &str = "days.db";
 const CHANNEL_ID: u64 = 1108866354980855961;
-const NATIONAL_DAY_BASE_URL: &str = "https://www.nationaldaycalendar.com";
 
 #[tokio::main]
 async fn main() {
     let discord_token =
         env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN environment variable");
-    let intents = GatewayIntents::GUILD_MESSAGES;
-    let serenity_client = serenity::Client::builder(&discord_token, intents)
-        .await
-        .expect("Error creating client");
     let db_connection = rusqlite::Connection::open(DB_PATH).expect("Failed to open db");
+    let http_client = Client::new();
     let date = OffsetDateTime::now_utc().date();
     let ymd_date = date
         .format(format_description!("[year]-[month]-[day]"))
@@ -56,10 +54,20 @@ async fn main() {
         message.push_str(" | ");
         message.push_str(&s);
     }
-    if let Err(err) = ChannelId::new(CHANNEL_ID)
-        .say(&serenity_client.http, message)
-        .await
-    {
+    if let Err(err) = send_discord_message(&http_client, &discord_token, &message).await {
         eprintln!("Error saying message: {err:?}");
     }
+}
+
+async fn send_discord_message(
+    client: &Client,
+    discord_token: &str,
+    message: &str,
+) -> Result<Response> {
+    client
+        .post(format!("{DISCORD_API_URL}/channels/{CHANNEL_ID}/messages"))
+        .header(AUTHORIZATION, format!("Bot {discord_token}"))
+        .body(format!("{{ \"content\": \"{message}\" }}"))
+        .send()
+        .await
 }
