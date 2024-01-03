@@ -11,9 +11,10 @@ const NATIONAL_DAY_BASE_URL: &str = "https://www.nationaldaycalendar.com";
 
 #[tokio::main]
 async fn main() {
-    let token = env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN environment variable");
+    let discord_token =
+        env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN environment variable");
     let intents = GatewayIntents::GUILD_MESSAGES;
-    let serenity_client = serenity::Client::builder(&token, intents)
+    let serenity_client = serenity::Client::builder(&discord_token, intents)
         .await
         .expect("Error creating client");
     let db_connection = rusqlite::Connection::open(DB_PATH).expect("Failed to open db");
