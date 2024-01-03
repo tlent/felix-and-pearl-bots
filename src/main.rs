@@ -4,7 +4,7 @@ use std::env;
 use time::macros::format_description;
 use time::OffsetDateTime;
 
-const DB_PATH: &str = "national_days_2024-01-02_16:29:24.db";
+const DB_PATH: &str = "days.db";
 const CHANNEL_ID: u64 = 1108866354980855961;
 const NATIONAL_DAY_BASE_URL: &str = "https://www.nationaldaycalendar.com";
 
