@@ -67,7 +67,7 @@ async fn generate_llm_message(
     birthday: Option<&str>,
 ) -> Result<String> {
     let formatted_date = date.format(format_description!(
-        "[month repr:long] [day padding:none], [year]"
+        "[weekday], [month repr:long] [day padding:none], [year]"
     ))?;
     let formatted_national_days = national_days
         .iter()
@@ -119,7 +119,7 @@ fn build_message(
     llm_message: &str,
 ) -> Result<String> {
     let mut message = date.format(format_description!(
-        "[month repr:long] [day padding:none], [year]"
+        "[weekday], [month repr:long] [day padding:none], [year]"
     ))?;
     for (name, url) in national_days {
         message.reserve(name.len() + url.len() + NATIONAL_DAY_BASE_URL.len() + 7);
