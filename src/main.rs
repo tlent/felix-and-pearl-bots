@@ -151,19 +151,24 @@ async fn send_discord_message(
     client: &reqwest::Client,
     discord_token: &str,
     message: &str,
-) -> Result<reqwest::Response> {
-    let response = client
-        .post(format!("{DISCORD_API_URL}/channels/{CHANNEL_ID}/messages"))
-        .header(
-            reqwest::header::AUTHORIZATION,
-            format!("Bot {discord_token}"),
-        )
-        .header(reqwest::header::CONTENT_TYPE, "application/json")
-        .body(json!({ "content": message }).to_string())
-        .send()
-        .await?;
-    if !response.status().is_success() {
-        return Err(anyhow!(response.text().await?));
+) -> Result<()> {
+    let max_message_len = 2000;
+    for start in (0..message.len()).step_by(max_message_len) {
+        let end = (start + max_message_len).min(message.len());
+        let substring = &message[start..end];
+        let response = client
+            .post(format!("{DISCORD_API_URL}/channels/{CHANNEL_ID}/messages"))
+            .header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bot {discord_token}"),
+            )
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(json!({ "content": substring }).to_string())
+            .send()
+            .await?;
+        if !response.status().is_success() {
+            return Err(anyhow!(response.text().await?));
+        }
     }
-    Ok(response)
+    Ok(())
 }
