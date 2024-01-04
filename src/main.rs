@@ -89,7 +89,6 @@ async fn generate_llm_message(
         {
             "model": MODEL,
             "messages": [
-                { "role": "system", "content": "You are a helpful assistant." },
                 { "role": "user", "content": prompt}
             ]
         }
