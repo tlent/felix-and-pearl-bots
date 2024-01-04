@@ -85,9 +85,16 @@ async fn generate_llm_message(
         Generate a playful and funny message relevant to today and these national days. \
         Include relevant and humorous emojis. Don't include any hashtags."
     );
-    let request_body =
-        json!({ "model": MODEL, "messages": [ { "role": "system", "content": prompt }]})
-            .to_string();
+    let request_body = json!(
+        {
+            "model": MODEL,
+            "messages": [
+                { "role": "system", "content": "You are a helpful assistant." },
+                { "role": "user", "content": prompt}
+            ]
+        }
+    )
+    .to_string();
     println!("{request_body}");
     let response = http_client
         .post(OPENAI_API_URL)
