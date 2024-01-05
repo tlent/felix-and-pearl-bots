@@ -11,6 +11,7 @@ const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
 const MODEL: &str = "gpt-3.5-turbo";
 const DB_PATH: &str = "days.db";
 const CHANNEL_ID: u64 = 1108866354980855961;
+const DISCORD_MAX_MESSAGE_LEN: usize = 2000;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -151,10 +152,21 @@ async fn send_discord_message(
     discord_token: &str,
     message: &str,
 ) -> Result<()> {
-    let max_message_len = 2000;
-    for start in (0..message.len()).step_by(max_message_len) {
-        let end = (start + max_message_len).min(message.len());
-        let substring = &message[start..end];
+    let mut messages = vec![];
+    if message.len() > DISCORD_MAX_MESSAGE_LEN {
+        let paragraphs = message.split_inclusive("\n\n");
+        let mut message = String::new();
+        for paragraph in paragraphs {
+            if message.len() + paragraph.len() > DISCORD_MAX_MESSAGE_LEN {
+                messages.push(message);
+                message = String::new();
+            }
+            message.push_str(paragraph);
+        }
+    } else {
+        messages.push(message.to_owned());
+    }
+    for message in messages {
         let response = client
             .post(format!("{DISCORD_API_URL}/channels/{CHANNEL_ID}/messages"))
             .header(
@@ -162,7 +174,7 @@ async fn send_discord_message(
                 format!("Bot {discord_token}"),
             )
             .header(reqwest::header::CONTENT_TYPE, "application/json")
-            .body(json!({ "content": substring }).to_string())
+            .body(json!({ "content": message }).to_string())
             .send()
             .await?;
         if !response.status().is_success() {
