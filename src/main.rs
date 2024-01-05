@@ -32,7 +32,11 @@ async fn main() -> Result<()> {
     )
     .await?;
     let message = build_message(date, &national_days, birthday.as_deref(), &llm_message)?;
-    send_discord_message(&http_client, &discord_token, &message).await?;
+    if message.len() <= DISCORD_MAX_MESSAGE_LEN {
+        send_discord_message(&http_client, &discord_token, &message).await?;
+    } else {
+        send_multipart_discord_message(&http_client, &discord_token, &message).await?;
+    }
     Ok(())
 }
 
@@ -147,39 +151,45 @@ fn build_message(
     Ok(message)
 }
 
+async fn send_multipart_discord_message(
+    client: &reqwest::Client,
+    discord_token: &str,
+    message: &str,
+) -> Result<()> {
+    let mut current_message = String::new();
+    let paragraphs = message.split_inclusive("\n\n");
+    for paragraph in paragraphs {
+        if current_message.len() + paragraph.len() > DISCORD_MAX_MESSAGE_LEN {
+            send_discord_message(client, discord_token, &current_message).await?;
+            current_message.clear();
+        }
+        current_message.push_str(paragraph);
+    }
+    if !current_message.is_empty() {
+        send_discord_message(client, discord_token, &current_message).await?;
+    }
+    Ok(())
+}
+
 async fn send_discord_message(
     client: &reqwest::Client,
     discord_token: &str,
     message: &str,
 ) -> Result<()> {
-    let mut messages = vec![];
-    if message.len() > DISCORD_MAX_MESSAGE_LEN {
-        let paragraphs = message.split_inclusive("\n\n");
-        let mut message = String::new();
-        for paragraph in paragraphs {
-            if message.len() + paragraph.len() > DISCORD_MAX_MESSAGE_LEN {
-                messages.push(message);
-                message = String::new();
-            }
-            message.push_str(paragraph);
-        }
-    } else {
-        messages.push(message.to_owned());
+    let response = client
+        .post(format!("{DISCORD_API_URL}/channels/{CHANNEL_ID}/messages"))
+        .header(
+            reqwest::header::AUTHORIZATION,
+            format!("Bot {discord_token}"),
+        )
+        .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .body(json!({ "content": message }).to_string())
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        return Err(anyhow!(response.text().await?));
     }
-    for message in messages {
-        let response = client
-            .post(format!("{DISCORD_API_URL}/channels/{CHANNEL_ID}/messages"))
-            .header(
-                reqwest::header::AUTHORIZATION,
-                format!("Bot {discord_token}"),
-            )
-            .header(reqwest::header::CONTENT_TYPE, "application/json")
-            .body(json!({ "content": message }).to_string())
-            .send()
-            .await?;
-        if !response.status().is_success() {
-            return Err(anyhow!(response.text().await?));
-        }
-    }
+
     Ok(())
 }
