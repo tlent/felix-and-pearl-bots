@@ -186,10 +186,8 @@ async fn send_discord_message(
         .body(json!({ "content": message }).to_string())
         .send()
         .await?;
-
     if !response.status().is_success() {
         return Err(anyhow!(response.text().await?));
     }
-
     Ok(())
 }
