@@ -8,7 +8,7 @@ use time::{Date, OffsetDateTime};
 const NATIONAL_DAY_BASE_URL: &str = "https://www.nationaldaycalendar.com";
 const DISCORD_API_URL: &str = "https://discord.com/api/v10";
 const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
-const MODEL: &str = "gpt-3.5-turbo";
+const MODEL: &str = "gpt-3.5-turbo-1106";
 const DB_PATH: &str = "days.db";
 const CHANNEL_ID: u64 = 1218191951237742612;
 const DISCORD_MAX_MESSAGE_LEN: usize = 2000;
