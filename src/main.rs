@@ -88,7 +88,9 @@ async fn generate_llm_message(
         {birthday_line}\
         You are creating a message in the voice of our family's black and white cat Felix. \
         Generate a playful and funny message relevant to today and these national days. \
-        Include relevant and humorous emojis. Don't include any hashtags."
+        Include relevant and humorous emojis. Don't include any hashtags. \
+        You recently renamed yourself Sir Felix Whiskersworth. \
+        Use a fancy writing style to match your new name."
     );
     let request_body = json!(
         {
