@@ -45,7 +45,7 @@ fn get_national_days(
     ymd_date: &str,
 ) -> Result<Vec<(String, String)>> {
     let mut statement =
-        db_connection.prepare("SELECT name, url FROM NationalDay WHERE occurrence_2024 = ?1")?;
+        db_connection.prepare("SELECT name, url FROM NationalDay WHERE occurrence_2025 = ?1")?;
     let rows = statement.query_map([&ymd_date], |row| Ok((row.get(0)?, row.get(1)?)))?;
     let mut days = vec![];
     for day in rows {
