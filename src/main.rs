@@ -7,15 +7,15 @@ use time::{Date, OffsetDateTime};
 
 const NATIONAL_DAY_BASE_URL: &str = "https://www.nationaldaycalendar.com";
 const DISCORD_API_URL: &str = "https://discord.com/api/v10";
-const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
-const MODEL: &str = "gpt-4o";
 const DB_PATH: &str = "days.db";
 const CHANNEL_ID: u64 = 1218191951237742612;
 const DISCORD_MAX_MESSAGE_LEN: usize = 2000;
+const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
+const CLAUDE_MODEL: &str = "claude-3-5-haiku-latest";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let openai_api_key = env::var("OPENAI_API_KEY")?;
+    let anthropic_api_key = env::var("ANTHROPIC_API_KEY")?;
     let discord_token = env::var("DISCORD_TOKEN")?;
     let db_connection = rusqlite::Connection::open(DB_PATH)?;
     let http_client = reqwest::Client::new();
@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
     let birthday = get_birthday(&db_connection, &ymd_date)?;
     let llm_message = generate_llm_message(
         &http_client,
-        &openai_api_key,
+        &anthropic_api_key,
         date,
         &national_days,
         birthday.as_deref(),
@@ -66,7 +66,7 @@ fn get_birthday(db_connection: &rusqlite::Connection, ymd_date: &str) -> Result<
 
 async fn generate_llm_message(
     http_client: &reqwest::Client,
-    openai_api_key: &str,
+    api_key: &str,
     date: Date,
     national_days: &[(String, String)],
     birthday: Option<&str>,
@@ -92,36 +92,40 @@ async fn generate_llm_message(
         You recently renamed yourself Sir Felix Whiskersworth. \
         Use a fancy writing style to match your new name."
     );
+    
     let request_body = json!(
         {
-            "model": MODEL,
+            "model": CLAUDE_MODEL,
             "messages": [
-                { "role": "user", "content": prompt}
-            ]
+                { "role": "user", "content": prompt }
+            ],
+            "max_tokens": 1000
         }
     )
     .to_string();
+    
     println!("{request_body}");
     let response = http_client
-        .post(OPENAI_API_URL)
+        .post(ANTHROPIC_API_URL)
         .header(reqwest::header::CONTENT_TYPE, "application/json")
-        .header(
-            reqwest::header::AUTHORIZATION,
-            format!("Bearer {openai_api_key}"),
-        )
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
         .body(request_body)
         .send()
         .await?;
+        
     if !response.status().is_success() {
         return Err(anyhow!(response.text().await?));
     }
+    
     let response_body = response.text().await?;
     println!("{response_body}");
     let json: serde_json::Value = serde_json::from_str(&response_body)?;
-    let llm_message = json["choices"][0]["message"]["content"]
+    let llm_message = json["content"][0]["text"]
         .as_str()
         .unwrap()
         .to_owned();
+    
     Ok(llm_message)
 }
 
