@@ -23,7 +23,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "target/aarch64-unknown-linux-gnu/release/felix-bot,days.db"
           target: "~"
-          fingerprint: ${{ vars.SSH_FINGERPRINT }}
+          known_hosts: ${{ vars.KNOWN_HOSTS }}
       
       - name: Execute remote commands
         uses: appleboy/ssh-action@v0.1.10
@@ -34,4 +34,4 @@ jobs:
           script: |
             sudo mv ~/felix-bot /usr/local/bin/felix-bot
             sudo mv ~/days.db /home/tlent/days.db
-          fingerprint: ${{ vars.SSH_FINGERPRINT }}
+          known_hosts: ${{ vars.KNOWN_HOSTS }}
