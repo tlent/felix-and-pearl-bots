@@ -10,7 +10,7 @@ const DISCORD_API_URL: &str = "https://discord.com/api/v10";
 const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
 const MODEL: &str = "gpt-4o";
 const DB_PATH: &str = "days.db";
-const CHANNEL_ID: u64 = 1218191951237742612;
+const CHANNEL_ID: u64 = 123;
 const DISCORD_MAX_MESSAGE_LEN: usize = 2000;
 
 #[tokio::main]
@@ -86,11 +86,8 @@ async fn generate_llm_message(
         "Today's date is {formatted_date}. The following are today's national days:\n\
         {formatted_national_days}\n\
         {birthday_line}\
-        You are creating a message in the voice of our family's black and white cat Felix. \
         Generate a playful and funny message relevant to today and these national days. \
-        Include relevant and humorous emojis. Don't include any hashtags. \
-        You recently renamed yourself Sir Felix Whiskersworth. \
-        Use a fancy writing style to match your new name."
+        Include relevant and humorous emojis. Don't include any hashtags."
     );
     let request_body = json!(
         {
