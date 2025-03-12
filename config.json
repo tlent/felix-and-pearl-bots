@@ -1,9 +1,0 @@
-{
-  "national_day_base_url": "https://www.nationaldaycalendar.com",
-  "discord_api_url": "https://discord.com/api/v10",
-  "db_path": "days.db",
-  "channel_id": 1218191951237742612,
-  "discord_max_message_len": 2000,
-  "anthropic_api_url": "https://api.anthropic.com/v1/messages",
-  "claude_model": "claude-3-5-haiku-latest"
-}

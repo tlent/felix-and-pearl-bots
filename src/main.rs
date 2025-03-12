@@ -1,37 +1,19 @@
 use anyhow::{anyhow, Context, Result};
 use rusqlite::OptionalExtension;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{env, fs, path::Path};
+use std::env;
 use time::macros::format_description;
 use time::{Date, OffsetDateTime};
 use tracing::{debug, error, info, instrument};
 
 // Configuration constants
-#[derive(Debug, Deserialize, Serialize)]
-struct Config {
-    national_day_base_url: String,
-    discord_api_url: String,
-    db_path: String,
-    channel_id: u64,
-    discord_max_message_len: usize,
-    anthropic_api_url: String,
-    claude_model: String,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            national_day_base_url: "https://www.nationaldaycalendar.com".to_string(),
-            discord_api_url: "https://discord.com/api/v10".to_string(),
-            db_path: "days.db".to_string(),
-            channel_id: 1218191951237742612,
-            discord_max_message_len: 2000,
-            anthropic_api_url: "https://api.anthropic.com/v1/messages".to_string(),
-            claude_model: "claude-3-5-haiku-latest".to_string(),
-        }
-    }
-}
+const NATIONAL_DAY_BASE_URL: &str = "https://www.nationaldaycalendar.com";
+const DISCORD_API_URL: &str = "https://discord.com/api/v10";
+const DB_PATH: &str = "days.db";
+const CHANNEL_ID: u64 = 1218191951237742612;
+const DISCORD_MAX_MESSAGE_LEN: usize = 2000;
+const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
+const CLAUDE_MODEL: &str = "claude-3-5-haiku-latest";
 
 // Models
 #[derive(Debug)]
@@ -53,10 +35,6 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
     info!("Starting Felix Bot");
 
-    // Load configuration
-    let config = load_config().context("Failed to load configuration")?;
-    debug!(?config, "Configuration loaded");
-
     // Load environment variables
     let anthropic_api_key = env::var("ANTHROPIC_API_KEY")
         .context("ANTHROPIC_API_KEY environment variable not set")?;
@@ -64,8 +42,8 @@ async fn main() -> Result<()> {
         .context("DISCORD_TOKEN environment variable not set")?;
 
     // Initialize database connection
-    let db_connection = rusqlite::Connection::open(&config.db_path)
-        .context(format!("Failed to open database at {}", &config.db_path))?;
+    let db_connection = rusqlite::Connection::open(DB_PATH)
+        .context(format!("Failed to open database at {}", DB_PATH))?;
     
     // Initialize HTTP client
     let http_client = reqwest::Client::new();
@@ -82,40 +60,19 @@ async fn main() -> Result<()> {
     let llm_message = generate_llm_message(
         &http_client,
         &anthropic_api_key,
-        &config,
         &daily_data,
     )
     .await
     .context("Failed to generate LLM message")?;
     
     // Build and send message
-    let message = build_message(&config, &daily_data, &llm_message)?;
+    let message = build_message(&daily_data, &llm_message)?;
     
-    send_message(&http_client, &discord_token, &config, &message).await
+    send_message(&http_client, &discord_token, &message).await
         .context("Failed to send Discord message")?;
     
     info!("Message sent successfully");
     Ok(())
-}
-
-fn load_config() -> Result<Config> {
-    let config_path = "config.json";
-    
-    if Path::new(config_path).exists() {
-        let config_str = fs::read_to_string(config_path)
-            .context("Failed to read config file")?;
-        let config: Config = serde_json::from_str(&config_str)
-            .context("Failed to parse config file")?;
-        Ok(config)
-    } else {
-        let config = Config::default();
-        let config_str = serde_json::to_string_pretty(&config)
-            .context("Failed to serialize default config")?;
-        fs::write(config_path, config_str)
-            .context("Failed to write default config file")?;
-        info!("Created default configuration file at {}", config_path);
-        Ok(config)
-    }
 }
 
 #[instrument(skip(db_connection))]
@@ -184,11 +141,10 @@ fn get_birthday(
     Ok(result)
 }
 
-#[instrument(skip(http_client, api_key, config))]
+#[instrument(skip(http_client, api_key))]
 async fn generate_llm_message(
     http_client: &reqwest::Client,
     api_key: &str,
-    config: &Config,
     daily_data: &DailyData,
 ) -> Result<String> {
     let formatted_date = daily_data.date.format(format_description!(
@@ -225,7 +181,7 @@ End your message with a dashing sign-off, such as \"Yours in whiskers and wisdom
     
     let request_body = json!(
         {
-            "model": config.claude_model,
+            "model": CLAUDE_MODEL,
             "messages": [
                 { "role": "user", "content": prompt }
             ],
@@ -235,7 +191,7 @@ End your message with a dashing sign-off, such as \"Yours in whiskers and wisdom
     
     debug!("Sending request to Anthropic API");
     let response = http_client
-        .post(&config.anthropic_api_url)
+        .post(ANTHROPIC_API_URL)
         .header(reqwest::header::CONTENT_TYPE, "application/json")
         .header("x-api-key", api_key)
         .header("anthropic-version", "2023-06-01")
@@ -266,9 +222,8 @@ End your message with a dashing sign-off, such as \"Yours in whiskers and wisdom
     Ok(llm_message)
 }
 
-#[instrument(skip(config, daily_data, llm_message))]
+#[instrument(skip(daily_data, llm_message))]
 fn build_message(
-    config: &Config,
     daily_data: &DailyData,
     llm_message: &str,
 ) -> Result<String> {
@@ -280,7 +235,7 @@ fn build_message(
     for day in &daily_data.national_days {
         message.push_str(&format!(" | [{}]({}{})", 
             day.name, 
-            config.national_day_base_url, 
+            NATIONAL_DAY_BASE_URL, 
             day.url
         ));
     }
@@ -297,33 +252,31 @@ fn build_message(
     Ok(message)
 }
 
-#[instrument(skip(client, discord_token, config, message))]
+#[instrument(skip(client, discord_token, message))]
 async fn send_message(
     client: &reqwest::Client,
     discord_token: &str,
-    config: &Config,
     message: &str,
 ) -> Result<()> {
-    if message.len() <= config.discord_max_message_len {
-        send_discord_message(client, discord_token, config, message).await
+    if message.len() <= DISCORD_MAX_MESSAGE_LEN {
+        send_discord_message(client, discord_token, message).await
     } else {
-        send_multipart_discord_message(client, discord_token, config, message).await
+        send_multipart_discord_message(client, discord_token, message).await
     }
 }
 
-#[instrument(skip(client, discord_token, config, message))]
+#[instrument(skip(client, discord_token, message))]
 async fn send_multipart_discord_message(
     client: &reqwest::Client,
     discord_token: &str,
-    config: &Config,
     message: &str,
 ) -> Result<()> {
     let mut current_message = String::new();
     let paragraphs = message.split_inclusive("\n\n");
     
     for paragraph in paragraphs {
-        if current_message.len() + paragraph.len() > config.discord_max_message_len {
-            send_discord_message(client, discord_token, config, &current_message).await?;
+        if current_message.len() + paragraph.len() > DISCORD_MAX_MESSAGE_LEN {
+            send_discord_message(client, discord_token, &current_message).await?;
             current_message.clear();
             debug!("Sent partial message");
         }
@@ -331,23 +284,22 @@ async fn send_multipart_discord_message(
     }
     
     if !current_message.is_empty() {
-        send_discord_message(client, discord_token, config, &current_message).await?;
+        send_discord_message(client, discord_token, &current_message).await?;
         debug!("Sent final part of multipart message");
     }
     
     Ok(())
 }
 
-#[instrument(skip(client, discord_token, config, message))]
+#[instrument(skip(client, discord_token, message))]
 async fn send_discord_message(
     client: &reqwest::Client,
     discord_token: &str,
-    config: &Config,
     message: &str,
 ) -> Result<()> {
     let url = format!("{}/channels/{}/messages", 
-        config.discord_api_url, 
-        config.channel_id
+        DISCORD_API_URL, 
+        CHANNEL_ID
     );
     
     let response = client
