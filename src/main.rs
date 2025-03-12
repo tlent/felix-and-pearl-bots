@@ -1,87 +1,210 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use rusqlite::OptionalExtension;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::env;
+use std::{env, fs, path::Path};
 use time::macros::format_description;
 use time::{Date, OffsetDateTime};
+use tracing::{debug, error, info, instrument};
 
-const NATIONAL_DAY_BASE_URL: &str = "https://www.nationaldaycalendar.com";
-const DISCORD_API_URL: &str = "https://discord.com/api/v10";
-const DB_PATH: &str = "days.db";
-const CHANNEL_ID: u64 = 1218191951237742612;
-const DISCORD_MAX_MESSAGE_LEN: usize = 2000;
-const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
-const CLAUDE_MODEL: &str = "claude-3-5-haiku-latest";
+// Configuration constants
+#[derive(Debug, Deserialize, Serialize)]
+struct Config {
+    national_day_base_url: String,
+    discord_api_url: String,
+    db_path: String,
+    channel_id: u64,
+    discord_max_message_len: usize,
+    anthropic_api_url: String,
+    claude_model: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            national_day_base_url: "https://www.nationaldaycalendar.com".to_string(),
+            discord_api_url: "https://discord.com/api/v10".to_string(),
+            db_path: "days.db".to_string(),
+            channel_id: 1218191951237742612,
+            discord_max_message_len: 2000,
+            anthropic_api_url: "https://api.anthropic.com/v1/messages".to_string(),
+            claude_model: "claude-3-5-haiku-latest".to_string(),
+        }
+    }
+}
+
+// Models
+#[derive(Debug)]
+struct NationalDay {
+    name: String,
+    url: String,
+}
+
+#[derive(Debug)]
+struct DailyData {
+    date: Date,
+    national_days: Vec<NationalDay>,
+    birthday: Option<String>,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let anthropic_api_key = env::var("ANTHROPIC_API_KEY")?;
-    let discord_token = env::var("DISCORD_TOKEN")?;
-    let db_connection = rusqlite::Connection::open(DB_PATH)?;
+    // Initialize logging
+    tracing_subscriber::fmt::init();
+    info!("Starting Felix Bot");
+
+    // Load configuration
+    let config = load_config().context("Failed to load configuration")?;
+    debug!(?config, "Configuration loaded");
+
+    // Load environment variables
+    let anthropic_api_key = env::var("ANTHROPIC_API_KEY")
+        .context("ANTHROPIC_API_KEY environment variable not set")?;
+    let discord_token = env::var("DISCORD_TOKEN")
+        .context("DISCORD_TOKEN environment variable not set")?;
+
+    // Initialize database connection
+    let db_connection = rusqlite::Connection::open(&config.db_path)
+        .context(format!("Failed to open database at {}", &config.db_path))?;
+    
+    // Initialize HTTP client
     let http_client = reqwest::Client::new();
+    
+    // Get today's date
     let date = OffsetDateTime::now_utc().date();
     let ymd_date = date.format(format_description!("[year]-[month]-[day]"))?;
-    let national_days = get_national_days(&db_connection, &ymd_date)?;
-    let birthday = get_birthday(&db_connection, &ymd_date)?;
+    
+    // Fetch daily data
+    let daily_data = fetch_daily_data(&db_connection, date, &ymd_date)
+        .context("Failed to fetch daily data")?;
+    
+    // Generate message using LLM
     let llm_message = generate_llm_message(
         &http_client,
         &anthropic_api_key,
-        date,
-        &national_days,
-        birthday.as_deref(),
+        &config,
+        &daily_data,
     )
-    .await?;
-    let message = build_message(date, &national_days, birthday.as_deref(), &llm_message)?;
-    if message.len() <= DISCORD_MAX_MESSAGE_LEN {
-        send_discord_message(&http_client, &discord_token, &message).await?;
-    } else {
-        send_multipart_discord_message(&http_client, &discord_token, &message).await?;
-    }
+    .await
+    .context("Failed to generate LLM message")?;
+    
+    // Build and send message
+    let message = build_message(&config, &daily_data, &llm_message)?;
+    
+    send_message(&http_client, &discord_token, &config, &message).await
+        .context("Failed to send Discord message")?;
+    
+    info!("Message sent successfully");
     Ok(())
 }
 
+fn load_config() -> Result<Config> {
+    let config_path = "config.json";
+    
+    if Path::new(config_path).exists() {
+        let config_str = fs::read_to_string(config_path)
+            .context("Failed to read config file")?;
+        let config: Config = serde_json::from_str(&config_str)
+            .context("Failed to parse config file")?;
+        Ok(config)
+    } else {
+        let config = Config::default();
+        let config_str = serde_json::to_string_pretty(&config)
+            .context("Failed to serialize default config")?;
+        fs::write(config_path, config_str)
+            .context("Failed to write default config file")?;
+        info!("Created default configuration file at {}", config_path);
+        Ok(config)
+    }
+}
+
+#[instrument(skip(db_connection))]
+fn fetch_daily_data(
+    db_connection: &rusqlite::Connection,
+    date: Date,
+    ymd_date: &str,
+) -> Result<DailyData> {
+    let national_days = get_national_days(db_connection, ymd_date)
+        .context("Failed to get national days")?;
+    let birthday = get_birthday(db_connection, ymd_date)
+        .context("Failed to get birthday")?;
+    
+    Ok(DailyData {
+        date,
+        national_days,
+        birthday,
+    })
+}
+
+#[instrument(skip(db_connection))]
 fn get_national_days(
     db_connection: &rusqlite::Connection,
     ymd_date: &str,
-) -> Result<Vec<(String, String)>> {
-    let mut statement =
-        db_connection.prepare("SELECT name, url FROM NationalDay WHERE occurrence_2025 = ?1")?;
-    let rows = statement.query_map([&ymd_date], |row| Ok((row.get(0)?, row.get(1)?)))?;
-    let mut days = vec![];
+) -> Result<Vec<NationalDay>> {
+    let mut statement = db_connection
+        .prepare("SELECT name, url FROM NationalDay WHERE occurrence_2025 = ?1")
+        .context("Failed to prepare national days query")?;
+    
+    let rows = statement
+        .query_map([&ymd_date], |row| {
+            Ok(NationalDay {
+                name: row.get(0)?,
+                url: row.get(1)?,
+            })
+        })
+        .context("Failed to execute national days query")?;
+    
+    let mut days = Vec::new();
     for day in rows {
-        days.push(day?);
+        days.push(day.context("Failed to process national day row")?);
     }
+    
+    debug!("Found {} national days", days.len());
     Ok(days)
 }
 
-fn get_birthday(db_connection: &rusqlite::Connection, ymd_date: &str) -> Result<Option<String>> {
-    Ok(db_connection
+#[instrument(skip(db_connection))]
+fn get_birthday(
+    db_connection: &rusqlite::Connection,
+    ymd_date: &str,
+) -> Result<Option<String>> {
+    let result = db_connection
         .query_row(
             "SELECT description FROM Birthday WHERE date = ?1",
             [&ymd_date],
             |row| row.get(0),
         )
-        .optional()?)
+        .optional()
+        .context("Failed to query birthday")?;
+    
+    if result.is_some() {
+        debug!("Found birthday for today");
+    }
+    
+    Ok(result)
 }
 
+#[instrument(skip(http_client, api_key, config))]
 async fn generate_llm_message(
     http_client: &reqwest::Client,
     api_key: &str,
-    date: Date,
-    national_days: &[(String, String)],
-    birthday: Option<&str>,
+    config: &Config,
+    daily_data: &DailyData,
 ) -> Result<String> {
-    let formatted_date = date.format(format_description!(
+    let formatted_date = daily_data.date.format(format_description!(
         "[weekday], [month repr:long] [day padding:none], [year]"
     ))?;
-    let formatted_national_days = national_days
+    
+    let formatted_national_days = daily_data.national_days
         .iter()
-        .map(|(name, _)| name.as_str())
+        .map(|day| day.name.as_str())
         .collect::<Vec<_>>()
         .join("\n");
-    let birthday_line = birthday
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| "None".to_string());
+    
+    let birthday_line = daily_data.birthday
+        .as_deref()
+        .unwrap_or("None")
+        .to_string();
     
     let prompt = format!(
         "Today's date is {formatted_date}. Below are today's national days and any special occasions to inspire your message:  
@@ -102,105 +225,149 @@ End your message with a dashing sign-off, such as \"Yours in whiskers and wisdom
     
     let request_body = json!(
         {
-            "model": CLAUDE_MODEL,
+            "model": config.claude_model,
             "messages": [
                 { "role": "user", "content": prompt }
             ],
             "max_tokens": 1000
         }
-    )
-    .to_string();
+    );
     
-    println!("{request_body}");
+    debug!("Sending request to Anthropic API");
     let response = http_client
-        .post(ANTHROPIC_API_URL)
+        .post(&config.anthropic_api_url)
         .header(reqwest::header::CONTENT_TYPE, "application/json")
         .header("x-api-key", api_key)
         .header("anthropic-version", "2023-06-01")
-        .body(request_body)
+        .json(&request_body)
         .send()
-        .await?;
+        .await
+        .context("Failed to send request to Anthropic API")?;
         
     if !response.status().is_success() {
-        return Err(anyhow!(response.text().await?));
+        let error_text = response.text().await
+            .context("Failed to get error response text")?;
+        error!("Anthropic API error: {}", error_text);
+        return Err(anyhow!("Anthropic API error: {}", error_text));
     }
     
-    let response_body = response.text().await?;
-    println!("{response_body}");
-    let json: serde_json::Value = serde_json::from_str(&response_body)?;
+    let response_body = response.text().await
+        .context("Failed to get response body")?;
+    
+    let json: serde_json::Value = serde_json::from_str(&response_body)
+        .context("Failed to parse Anthropic API response")?;
+    
     let llm_message = json["content"][0]["text"]
         .as_str()
-        .unwrap()
+        .ok_or_else(|| anyhow!("Failed to extract message from Anthropic API response"))?
         .to_owned();
     
+    debug!("Successfully generated LLM message");
     Ok(llm_message)
 }
 
+#[instrument(skip(config, daily_data, llm_message))]
 fn build_message(
-    date: Date,
-    national_days: &[(String, String)],
-    birthday: Option<&str>,
+    config: &Config,
+    daily_data: &DailyData,
     llm_message: &str,
 ) -> Result<String> {
-    let mut message = date.format(format_description!(
+    let mut message = daily_data.date.format(format_description!(
         "[weekday], [month repr:long] [day padding:none], [year]"
     ))?;
-    for (name, url) in national_days {
-        message.reserve(name.len() + url.len() + NATIONAL_DAY_BASE_URL.len() + 7);
-        message.push_str(" | [");
-        message.push_str(name);
-        message.push_str("](");
-        message.push_str(NATIONAL_DAY_BASE_URL);
-        message.push_str(url);
-        message.push(')');
+    
+    // Add national days
+    for day in &daily_data.national_days {
+        message.push_str(&format!(" | [{}]({}{})", 
+            day.name, 
+            config.national_day_base_url, 
+            day.url
+        ));
     }
-    if let Some(s) = birthday {
-        message.reserve(s.len() + 3);
-        message.push_str(" | ");
-        message.push_str(s);
+    
+    // Add birthday if present
+    if let Some(birthday) = &daily_data.birthday {
+        message.push_str(&format!(" | {}", birthday));
     }
+    
+    // Add LLM message
     message.push('\n');
     message.push_str(llm_message);
+    
     Ok(message)
 }
 
+#[instrument(skip(client, discord_token, config, message))]
+async fn send_message(
+    client: &reqwest::Client,
+    discord_token: &str,
+    config: &Config,
+    message: &str,
+) -> Result<()> {
+    if message.len() <= config.discord_max_message_len {
+        send_discord_message(client, discord_token, config, message).await
+    } else {
+        send_multipart_discord_message(client, discord_token, config, message).await
+    }
+}
+
+#[instrument(skip(client, discord_token, config, message))]
 async fn send_multipart_discord_message(
     client: &reqwest::Client,
     discord_token: &str,
+    config: &Config,
     message: &str,
 ) -> Result<()> {
     let mut current_message = String::new();
     let paragraphs = message.split_inclusive("\n\n");
+    
     for paragraph in paragraphs {
-        if current_message.len() + paragraph.len() > DISCORD_MAX_MESSAGE_LEN {
-            send_discord_message(client, discord_token, &current_message).await?;
+        if current_message.len() + paragraph.len() > config.discord_max_message_len {
+            send_discord_message(client, discord_token, config, &current_message).await?;
             current_message.clear();
+            debug!("Sent partial message");
         }
         current_message.push_str(paragraph);
     }
+    
     if !current_message.is_empty() {
-        send_discord_message(client, discord_token, &current_message).await?;
+        send_discord_message(client, discord_token, config, &current_message).await?;
+        debug!("Sent final part of multipart message");
     }
+    
     Ok(())
 }
 
+#[instrument(skip(client, discord_token, config, message))]
 async fn send_discord_message(
     client: &reqwest::Client,
     discord_token: &str,
+    config: &Config,
     message: &str,
 ) -> Result<()> {
+    let url = format!("{}/channels/{}/messages", 
+        config.discord_api_url, 
+        config.channel_id
+    );
+    
     let response = client
-        .post(format!("{DISCORD_API_URL}/channels/{CHANNEL_ID}/messages"))
+        .post(&url)
         .header(
             reqwest::header::AUTHORIZATION,
             format!("Bot {discord_token}"),
         )
         .header(reqwest::header::CONTENT_TYPE, "application/json")
-        .body(json!({ "content": message }).to_string())
+        .json(&json!({ "content": message }))
         .send()
-        .await?;
+        .await
+        .context("Failed to send Discord message request")?;
+    
     if !response.status().is_success() {
-        return Err(anyhow!(response.text().await?));
+        let error_text = response.text().await
+            .context("Failed to get Discord error response")?;
+        error!("Discord API error: {}", error_text);
+        return Err(anyhow!("Discord API error: {}", error_text));
     }
+    
     Ok(())
 }
