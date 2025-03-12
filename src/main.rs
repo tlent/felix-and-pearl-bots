@@ -1,3 +1,13 @@
+//! Felix Bot - A Discord bot that posts daily messages about national days and special occasions
+//! 
+//! This bot fetches national days and birthdays from a SQLite database, generates creative messages
+//! using Claude AI, and posts them to a Discord channel. The messages are written from the perspective
+//! of a cat named Sir Felix Whiskersworth.
+//!
+//! # Environment Variables
+//! - `ANTHROPIC_API_KEY`: API key for Anthropic's Claude AI
+//! - `DISCORD_TOKEN`: Discord bot token
+
 use anyhow::{anyhow, Context, Result};
 use rusqlite::OptionalExtension;
 use serde_json::json;
@@ -15,20 +25,30 @@ const DISCORD_MAX_MESSAGE_LEN: usize = 2000;
 const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
 const CLAUDE_MODEL: &str = "claude-3-5-haiku-latest";
 
-// Models
+/// Represents a national day with its name and URL path
 #[derive(Debug)]
 struct NationalDay {
+    /// The name of the national day
     name: String,
+    /// The URL path (without base URL) to the national day's page
     url: String,
 }
 
+/// Contains all data needed for generating the daily message
 #[derive(Debug)]
 struct DailyData {
+    /// Today's date
     date: Date,
+    /// List of national days for today
     national_days: Vec<NationalDay>,
+    /// Optional birthday message if someone has a birthday today
     birthday: Option<String>,
 }
 
+/// Main entry point for the Felix Bot application
+///
+/// Initializes logging, loads environment variables, connects to the database,
+/// fetches daily data, generates a message using Claude AI, and sends it to Discord.
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logging
@@ -75,6 +95,15 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+/// Fetches all data needed for today's message from the database
+///
+/// # Arguments
+/// * `db_connection` - SQLite database connection
+/// * `date` - Today's date
+/// * `ymd_date` - Today's date formatted as YYYY-MM-DD
+///
+/// # Returns
+/// A `DailyData` struct containing today's date, national days, and any birthdays
 #[instrument(skip(db_connection))]
 fn fetch_daily_data(
     db_connection: &rusqlite::Connection,
@@ -93,6 +122,14 @@ fn fetch_daily_data(
     })
 }
 
+/// Retrieves national days for the given date from the database
+///
+/// # Arguments
+/// * `db_connection` - SQLite database connection
+/// * `ymd_date` - Date formatted as YYYY-MM-DD
+///
+/// # Returns
+/// A vector of `NationalDay` structs
 #[instrument(skip(db_connection))]
 fn get_national_days(
     db_connection: &rusqlite::Connection,
@@ -120,6 +157,14 @@ fn get_national_days(
     Ok(days)
 }
 
+/// Retrieves birthday information for the given date from the database
+///
+/// # Arguments
+/// * `db_connection` - SQLite database connection
+/// * `ymd_date` - Date formatted as YYYY-MM-DD
+///
+/// # Returns
+/// An optional string containing birthday information, or None if no birthdays today
 #[instrument(skip(db_connection))]
 fn get_birthday(
     db_connection: &rusqlite::Connection,
@@ -141,6 +186,15 @@ fn get_birthday(
     Ok(result)
 }
 
+/// Generates a creative message using Claude AI based on today's national days and special occasions
+///
+/// # Arguments
+/// * `http_client` - HTTP client for making API requests
+/// * `api_key` - Anthropic API key
+/// * `daily_data` - Data about today's date, national days, and birthdays
+///
+/// # Returns
+/// A string containing the AI-generated message
 #[instrument(skip(http_client, api_key))]
 async fn generate_llm_message(
     http_client: &reqwest::Client,
@@ -222,6 +276,14 @@ End your message with a dashing sign-off, such as \"Yours in whiskers and wisdom
     Ok(llm_message)
 }
 
+/// Builds the complete message to be sent to Discord
+///
+/// # Arguments
+/// * `daily_data` - Data about today's date, national days, and birthdays
+/// * `llm_message` - The AI-generated message from Claude
+///
+/// # Returns
+/// A formatted string containing the complete message with date, national days, birthdays, and AI content
 #[instrument(skip(daily_data, llm_message))]
 fn build_message(
     daily_data: &DailyData,
@@ -252,6 +314,15 @@ fn build_message(
     Ok(message)
 }
 
+/// Sends a message to Discord, handling messages that exceed Discord's character limit
+///
+/// # Arguments
+/// * `client` - HTTP client for making API requests
+/// * `discord_token` - Discord bot token
+/// * `message` - The message to send
+///
+/// # Returns
+/// Result indicating success or failure
 #[instrument(skip(client, discord_token, message))]
 async fn send_message(
     client: &reqwest::Client,
@@ -265,6 +336,15 @@ async fn send_message(
     }
 }
 
+/// Splits a long message into multiple parts and sends each part to Discord
+///
+/// # Arguments
+/// * `client` - HTTP client for making API requests
+/// * `discord_token` - Discord bot token
+/// * `message` - The long message to split and send
+///
+/// # Returns
+/// Result indicating success or failure
 #[instrument(skip(client, discord_token, message))]
 async fn send_multipart_discord_message(
     client: &reqwest::Client,
@@ -291,6 +371,15 @@ async fn send_multipart_discord_message(
     Ok(())
 }
 
+/// Sends a single message to a Discord channel
+///
+/// # Arguments
+/// * `client` - HTTP client for making API requests
+/// * `discord_token` - Discord bot token
+/// * `message` - The message to send
+///
+/// # Returns
+/// Result indicating success or failure
 #[instrument(skip(client, discord_token, message))]
 async fn send_discord_message(
     client: &reqwest::Client,
