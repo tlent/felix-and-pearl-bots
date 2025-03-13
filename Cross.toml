@@ -6,6 +6,10 @@ pre-built = true
 [target.aarch64-unknown-linux-gnu]
 # Use a specific image that's optimized for ARM64 builds
 image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:latest"
+# Add this to force using the toolchain even on non-host platforms
+xargo = false
+# Ensure we use the stable toolchain
+rustup_toolchain = "stable"
 
 # Configure environment variables for the build
 [target.aarch64-unknown-linux-gnu.env]
@@ -17,4 +21,4 @@ CARGO_BUILD_TARGET = "aarch64-unknown-linux-gnu"
 # Optimize build performance
 CARGO_PROFILE_RELEASE_LTO = "thin"
 CARGO_PROFILE_RELEASE_CODEGEN_UNITS = "1"
-CARGO_PROFILE_RELEASE_OPT_LEVEL = "3" 
+CARGO_PROFILE_RELEASE_OPT_LEVEL = "3"

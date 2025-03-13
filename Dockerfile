@@ -13,6 +13,10 @@ RUN apt-get update && \
     libc6-dev-arm64-cross \
     && rm -rf /var/lib/apt/lists/*
 
+# Install the required Rust toolchain with force-non-host flag
+RUN rustup target add aarch64-unknown-linux-gnu && \
+    rustup toolchain install stable --force-non-host
+
 # Install cargo-cross with caching
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
@@ -29,7 +33,6 @@ RUN mkdir -p src && \
 
 # Build dependencies only - this layer will be cached unless Cargo.toml/Cargo.lock change
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/app/target \
     cross build --target aarch64-unknown-linux-gnu --release
 
@@ -38,7 +41,6 @@ COPY src src/
 
 # Build the application with cross for ARM64
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/app/target \
     touch src/main.rs && \
     cross build --target aarch64-unknown-linux-gnu --release && \
