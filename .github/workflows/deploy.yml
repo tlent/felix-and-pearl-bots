@@ -15,17 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Cache Rust dependencies
+      # Improved Rust dependencies caching using Swatinem/rust-cache
       - name: Cache Rust dependencies
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          shared-key: "felix-bot-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}"
       
       # Set up Docker Buildx with improved caching
       - name: Set up Docker Buildx
@@ -46,7 +40,7 @@ jobs:
           echo "tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
       
-      # Build and push with caching enabled
+      # Build and push with enhanced caching enabled
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -107,9 +101,22 @@ jobs:
             if docker run --name felix-bot-test --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot --test-mode; then
               echo "Test passed, updating cron job"
               
-              # Set up cron job if it doesn't exist
+              # Set up cron job if it doesn't exist - ensure it runs at exactly 7:00 AM
               CRON_JOB="0 7 * * * docker run --rm --name felix-bot --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1"
-              (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
+              
+              # Check if cron job already exists
+              if crontab -l 2>/dev/null | grep -q "felix-bot"; then
+                # Update existing cron job
+                (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
+                echo "Updated existing cron job to run at 7:00 AM daily"
+              else
+                # Add new cron job
+                (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+                echo "Added new cron job to run at 7:00 AM daily"
+              fi
+              
+              # Create log file if it doesn't exist
+              touch ~/felix-bot/felix-bot.log
               
               # Save the current version for reference
               echo "ghcr.io/${{ github.repository_owner }}/felix-bot:${{ steps.version.outputs.date }}-${{ steps.version.outputs.tag }}" > ~/felix-bot/current_version.txt

@@ -13,19 +13,23 @@ RUN apt-get update && \
     libc6-dev-arm64-cross \
     && rm -rf /var/lib/apt/lists/*
 
-# Install cargo-cross
-RUN cargo install cross
+# Install cargo-cross with caching
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    cargo install cross
 
 # Copy only the files needed for dependency resolution first
 COPY Cargo.toml Cargo.lock ./
 COPY .cargo .cargo/
+COPY Cross.toml ./
 
 # Create a minimal src directory with a dummy main
 RUN mkdir -p src && \
-    echo 'fn main() {}' > src/main.rs
+    echo 'fn main() { println!("Dummy build for caching dependencies"); }' > src/main.rs
 
 # Build dependencies only - this layer will be cached unless Cargo.toml/Cargo.lock change
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/app/target \
     cross build --target aarch64-unknown-linux-gnu --release
 
@@ -34,6 +38,7 @@ COPY src src/
 
 # Build the application with cross for ARM64
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/app/target \
     touch src/main.rs && \
     cross build --target aarch64-unknown-linux-gnu --release && \
