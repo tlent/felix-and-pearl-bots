@@ -1,10 +1,10 @@
 name: FelixBot Deploy
+
 on:
   push:
     branches:
       - main
 
-# Add this permissions block
 permissions:
   contents: read
   packages: write
@@ -13,34 +13,39 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
+      # Checkout the repository code
       - uses: actions/checkout@v4
-      
-      # Improved Rust dependencies caching using Swatinem/rust-cache
+
+      # Cache Rust dependencies to speed up builds
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: "felix-bot-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}"
-      
-      # Set up Docker Buildx with improved caching
+
+      # Set up Docker Buildx for multi-platform builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+
+      # Log in to GitHub Container Registry
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Generate version tag based on commit SHA
+
+      # Generate a version tag using commit SHA and date
       - name: Generate version tag
         id: version
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           echo "tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-      
-      # Build and push with enhanced caching enabled
+
+      # Build and push the Docker image for ARM64
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -59,17 +64,19 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
             CARGO_NET_GIT_FETCH_WITH_CLI=true
-      
-      - name: Copy days.db to server
+
+      # Copy days.db and deploy.sh to the server
+      - name: Copy days.db and deploy.sh to server
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ vars.SSH_HOST }}
           username: ${{ vars.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           fingerprint: ${{ vars.SSH_FINGERPRINT }}
-          source: "days.db"
+          source: "days.db,deploy.sh"
           target: "~/felix-bot"
-      
+
+      # Deploy to Raspberry Pi using a script
       - name: Deploy to Raspberry Pi
         id: deploy
         uses: appleboy/ssh-action@v0.1.10
@@ -79,53 +86,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           fingerprint: ${{ vars.SSH_FINGERPRINT }}
           script: |
-            # Store the previous image tag for potential rollback
-            PREVIOUS_IMAGE=$(docker ps --filter "name=felix-bot" --format "{{.Image}}" 2>/dev/null || echo "none")
-            echo "Previous image: $PREVIOUS_IMAGE" > ~/felix-bot/rollback.txt
-            
-            # Pull the latest image
-            docker pull ghcr.io/${{ github.repository_owner }}/felix-bot:latest
-            
-            # Create .env file if it doesn't exist
-            if [ ! -f ~/felix-bot/.env ]; then
-              mkdir -p ~/felix-bot
-              echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" > ~/felix-bot/.env
-              echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> ~/felix-bot/.env
-            fi
-            
-            # Stop any running container
-            docker stop felix-bot 2>/dev/null || true
-            docker rm felix-bot 2>/dev/null || true
-            
-            # Run a test container to verify the image works
-            if docker run --name felix-bot-test --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot --test-mode; then
-              echo "Test passed, updating cron job"
-              
-              # Set up cron job if it doesn't exist - ensure it runs at exactly 7:00 AM
-              CRON_JOB="0 7 * * * docker run --rm --name felix-bot --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1"
-              
-              # Check if cron job already exists
-              if crontab -l 2>/dev/null | grep -q "felix-bot"; then
-                # Update existing cron job
-                (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
-                echo "Updated existing cron job to run at 7:00 AM daily"
-              else
-                # Add new cron job
-                (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-                echo "Added new cron job to run at 7:00 AM daily"
-              fi
-              
-              # Create log file if it doesn't exist
-              touch ~/felix-bot/felix-bot.log
-              
-              # Save the current version for reference
-              echo "ghcr.io/${{ github.repository_owner }}/felix-bot:${{ steps.version.outputs.date }}-${{ steps.version.outputs.tag }}" > ~/felix-bot/current_version.txt
-              exit 0
-            else
-              echo "Test failed, not updating cron job"
-              exit 1
-            fi
-      
+            chmod +x ~/felix-bot/deploy.sh
+            bash ~/felix-bot/deploy.sh ${{ github.repository_owner }} ${{ steps.version.outputs.date }}-${{ steps.version.outputs.tag }}
+
       # Rollback if deployment fails
       - name: Rollback on failure
         if: failure() && steps.deploy.outcome == 'failure'
@@ -139,16 +102,9 @@ jobs:
             if [ -f ~/felix-bot/rollback.txt ]; then
               PREVIOUS_IMAGE=$(cat ~/felix-bot/rollback.txt | cut -d' ' -f3)
               if [ "$PREVIOUS_IMAGE" != "none" ]; then
-                echo "Rolling back to previous image: $PREVIOUS_IMAGE"
-                
-                # Update cron job with previous image
+                echo "Rolling back to $PREVIOUS_IMAGE"
                 CRON_JOB="0 7 * * * docker run --rm --name felix-bot --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db $PREVIOUS_IMAGE /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1"
                 (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
-                
                 echo "Rollback completed"
-              else
-                echo "No previous image found for rollback"
               fi
-            else
-              echo "No rollback information available"
             fi

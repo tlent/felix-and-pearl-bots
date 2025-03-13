@@ -1,79 +1,71 @@
-# Builder stage
+# Builder stage: Compile the Rust application for ARM64
 FROM rust:slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies including SQLite development libraries and cross
+# Install minimal build dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     pkg-config \
     libsqlite3-dev \
     gcc-aarch64-linux-gnu \
-    g++-aarch64-linux-gnu \
     libc6-dev-arm64-cross \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the required Rust toolchain with force-non-host flag
-RUN rustup target add aarch64-unknown-linux-gnu && \
-    rustup toolchain install stable --force-non-host
+# Set up Rust toolchain for ARM64
+RUN rustup target add aarch64-unknown-linux-gnu
 
-# Install cargo-cross with caching
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    cargo install cross
+# Configure Cargo for cross-compilation
+RUN mkdir -p .cargo && \
+    echo '[target.aarch64-unknown-linux-gnu]' > .cargo/config.toml && \
+    echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
 
-# Copy only the files needed for dependency resolution first
+# Copy dependency files first for caching
 COPY Cargo.toml Cargo.lock ./
 COPY .cargo .cargo/
-COPY Cross.toml ./
 
-# Create a minimal src directory with a dummy main
+# Create a dummy main.rs to build dependencies
 RUN mkdir -p src && \
-    echo 'fn main() { println!("Dummy build for caching dependencies"); }' > src/main.rs
+    echo 'fn main() { println!("Dummy build"); }' > src/main.rs
 
-# Build dependencies only - this layer will be cached unless Cargo.toml/Cargo.lock change
+# Build and cache dependencies
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
-    cross build --target aarch64-unknown-linux-gnu --release
+    cargo build --target aarch64-unknown-linux-gnu --release
 
-# Now copy the actual source code
+# Copy the actual source code
 COPY src src/
 
-# Build the application with cross for ARM64
+# Build the application and strip the binary
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     touch src/main.rs && \
-    cross build --target aarch64-unknown-linux-gnu --release && \
+    cargo build --target aarch64-unknown-linux-gnu --release && \
     cp target/aarch64-unknown-linux-gnu/release/felix-bot /app/felix-bot && \
     aarch64-linux-gnu-strip /app/felix-bot
 
-# Runtime stage - using a much smaller base image
+# Runtime stage: Create a minimal image
 FROM debian:bookworm-slim AS runtime
 
-# Install only essential runtime dependencies including SQLite in a single layer
+# Install runtime dependencies (remove ca-certificates if not needed)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    ca-certificates \
     libsqlite3-0 \
-    && rm -rf /var/lib/apt/lists/* && \
-    apt-get clean autoclean && \
-    apt-get autoremove --yes
+    && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user to run the application
+# Create a non-root user
 RUN groupadd -r felix && useradd -r -g felix felix
 
-# Create directory structure and set permissions
+# Set up working directory and permissions
 WORKDIR /app
 RUN chown -R felix:felix /app
 
-# Copy only the built binary - do this after setting up the environment
+# Copy the binary from the builder stage
 COPY --from=builder /app/felix-bot /usr/local/bin/
-
-# Set proper permissions for the binary
 RUN chmod 755 /usr/local/bin/felix-bot
 
 # Switch to non-root user
 USER felix
 
-# Set the entrypoint
-ENTRYPOINT ["/usr/local/bin/felix-bot"] 
+# Define the entrypoint
+ENTRYPOINT ["/usr/local/bin/felix-bot"]
