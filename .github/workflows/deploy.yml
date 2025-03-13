@@ -4,34 +4,47 @@ on:
     branches:
       - main
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       
-      - name: Build for Raspberry Pi
-        run: cross build --release --target=aarch64-unknown-linux-gnu
-      
-      - name: Deploy to server
-        uses: appleboy/scp-action@v0.1.4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          host: ${{ vars.SSH_HOST }}
-          username: ${{ vars.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "target/aarch64-unknown-linux-gnu/release/felix-bot,days.db"
-          target: "~"
-          fingerprint: ${{ vars.SSH_FINGERPRINT }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Execute remote commands
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/felix-bot:latest
+      
+      - name: Deploy to Raspberry Pi
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ vars.SSH_HOST }}
           username: ${{ vars.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            sudo mv ~/felix-bot /usr/local/bin/felix-bot
-            sudo mv ~/days.db /home/tlent/days.db
           fingerprint: ${{ vars.SSH_FINGERPRINT }}
+          script: |
+            # Pull the latest image
+            docker pull ghcr.io/${{ github.repository_owner }}/felix-bot:latest
+            
+            # Create .env file if it doesn't exist
+            if [ ! -f ~/felix-bot/.env ]; then
+              mkdir -p ~/felix-bot
+              echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" > ~/felix-bot/.env
+              echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> ~/felix-bot/.env
+            fi
+            
+            # Set up cron job if it doesn't exist
+            CRON_JOB="0 7 * * * docker run --rm --env-file ~/felix-bot/.env ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1"
+            (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
