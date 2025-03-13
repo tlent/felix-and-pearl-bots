@@ -3,6 +3,12 @@ on:
   push:
     branches:
       - main
+
+# Add this permissions block
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
