@@ -27,6 +27,16 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/felix-bot:latest
       
+      - name: Copy days.db to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ vars.SSH_FINGERPRINT }}
+          source: "days.db"
+          target: "~/felix-bot"
+      
       - name: Deploy to Raspberry Pi
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -46,5 +56,5 @@ jobs:
             fi
             
             # Set up cron job if it doesn't exist
-            CRON_JOB="0 7 * * * docker run --rm --env-file ~/felix-bot/.env ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1"
+            CRON_JOB="0 7 * * * docker run --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1"
             (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
