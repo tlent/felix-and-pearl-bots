@@ -1,117 +1,68 @@
-# Felix Bot (Simplified)
+# Felix Bot
 
-A Discord bot that posts daily messages about national days and special occasions. The messages are written from the perspective of a cat named Sir Felix Whiskersworth.
+A Discord bot that posts daily messages about national days and special occasions, written from the perspective of Sir Felix Whiskersworth, a distinguished feline.
+
+## Overview
+
+Felix Bot fetches data from a SQLite database of national days and birthdays, then uses Claude AI to craft creative messages that weave these events into a cohesive narrative. The result is a daily dose of feline wisdom and humor for your Discord server.
 
 ## Features
 
-- Fetches national days from a SQLite database
-- Generates creative messages using Claude AI
-- Posts daily messages to a Discord channel
-- Minimal dependencies for better performance and smaller footprint
+- Daily messages about national days and observances
+- Birthday celebrations for special occasions
+- AI-generated content using Claude
+- Rich content with links to learn more about each national day
+- Test mode for verifying functionality without sending messages
 
-## Simplified Architecture
+## Setup
 
-This version of Felix Bot has been optimized to use minimal dependencies while maintaining full functionality:
+1. **Environment Variables**
 
-- Replaced async/await (tokio) with synchronous code using ureq
-- Replaced time with chrono for date handling
-- Replaced tracing with simple_logger for logging
-- Uses anyhow for simplified error handling
-
-## Deployment
-
-### Prerequisites
-
-- Docker installed on your Raspberry Pi
-- Access to GitHub Container Registry
-- Discord bot token
-- Anthropic API key for Claude AI
-- SQLite database with national days and birthdays
-
-### Automatic Deployment
-
-The bot is automatically deployed to your Raspberry Pi using GitHub Actions whenever changes are pushed to the main branch. The workflow:
-
-1. Builds a Docker image
-2. Pushes it to GitHub Container Registry
-3. Connects to your Raspberry Pi via SSH
-4. Pulls the latest image
-5. Sets up a cron job to run the bot daily at 7 AM
-
-### Manual Setup
-
-If you need to set up the bot manually:
-
-1. Install Docker on your Raspberry Pi
-2. Create a directory for the bot:
-   ```bash
-   mkdir -p ~/felix-bot
-   ```
-3. Create an .env file with your API keys:
-   ```bash
-   echo "ANTHROPIC_API_KEY=your_key_here" > ~/felix-bot/.env
-   echo "DISCORD_TOKEN=your_token_here" >> ~/felix-bot/.env
-   ```
-4. Copy your days.db file to the directory:
-   ```bash
-   cp /path/to/your/days.db ~/felix-bot/days.db
-   ```
-5. Pull the Docker image:
-   ```bash
-   docker pull ghcr.io/yourusername/felix-bot:latest
-   ```
-6. Set up a cron job to run the bot daily at 7 AM:
-   ```bash
-   (crontab -l 2>/dev/null; echo "0 7 * * * docker run --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/yourusername/felix-bot:latest >> ~/felix-bot/felix-bot.log 2>&1") | crontab -
-   ```
-
-### Checking Logs
-
-You can check the bot's logs at any time:
-
-```bash
-cat ~/felix-bot/felix-bot.log
+```
+ANTHROPIC_API_KEY=your_anthropic_api_key
+DISCORD_TOKEN=your_discord_bot_token
 ```
 
-### Testing the Bot
-
-To run the bot manually:
+2. **Build and Run**
 
 ```bash
-docker run --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/yourusername/felix-bot:latest
-```
-
-To run in test mode (verifies functionality without sending messages):
-
-```bash
-docker run --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/yourusername/felix-bot:latest --test-mode
-```
-
-## Development
-
-### Local Setup
-
-1. Clone the repository
-2. Install Rust and Cargo
-3. Set up environment variables:
-   ```bash
-   export ANTHROPIC_API_KEY=your_key_here
-   export DISCORD_TOKEN=your_token_here
-   ```
-4. Make sure you have a days.db file in the project root
-5. Run the bot:
-   ```bash
-   cargo run
-   ```
-
-### Building Locally
-
-```bash
+# Build
 cargo build --release
+
+# Run normally
+cargo run --release
+
+# Run in test mode
+cargo run --release -- --test-mode
 ```
 
-### Building Docker Image Locally
+## Configuration
 
-```bash
-docker build -t felix-bot .
+Key settings in `src/config.rs`:
+
+| Setting | Default |
+|---------|---------|
+| Database path | `days.db` |
+| Discord channel ID | `1218191951237742612` |
+| Claude model | `claude-3-5-haiku-latest` |
+
+## Database Schema
+
+- **NationalDay**: `name`, `url`, `occurrence_2025` (YYYY-MM-DD)
+- **Birthday**: `date` (YYYY-MM-DD), `description`
+
+## Project Structure
+
+```
+felix-bot/
+├── src/
+│   ├── main.rs         # Application entry point
+│   ├── lib.rs          # Library exports
+│   ├── models.rs       # Data structures
+│   ├── database.rs     # Database operations
+│   ├── ai.rs           # Claude AI integration
+│   ├── discord.rs      # Discord API integration
+│   └── config.rs       # Configuration constants
+├── days.db             # SQLite database
+└── README.md           # This file
 ``` 
