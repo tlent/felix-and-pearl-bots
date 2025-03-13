@@ -15,19 +15,21 @@ RUN mkdir -p src && \
 # Now copy the real source code
 COPY . .
 
-# Build the actual application
+# Build the actual application with optimizations
 RUN cargo build --release
 
-# Runtime stage
-FROM debian:bookworm-slim
+# Runtime stage - using a much smaller base image
+FROM debian:bookworm-slim AS runtime
 
 # Copy only the built binary
 COPY --from=builder /app/target/release/felix-bot /usr/local/bin/
 
-# Install runtime dependencies only
+# Install only essential runtime dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* && \
+    apt-get clean autoclean && \
+    apt-get autoremove --yes
 
 # Create a non-root user to run the application
 RUN groupadd -r felix && useradd -r -g felix felix
