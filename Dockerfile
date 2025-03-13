@@ -1,28 +1,28 @@
 # Builder stage
-FROM rust:slim as builder
+FROM rust:slim AS builder
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create a new empty shell project for dependency caching
 WORKDIR /app
+
+# Copy only files needed for dependency resolution
 COPY Cargo.toml Cargo.lock ./
 
-# Build only the dependencies to cache them
+# Create a dummy main.rs to build dependencies
 RUN mkdir -p src && \
     echo "fn main() {}" > src/main.rs && \
     cargo build --release && \
     rm -rf src
 
-# Now build the actual application
+# Now copy the real source code
 COPY . .
+
+# Build the actual application
 RUN cargo build --release
 
-# Runtime stage - use a smaller base image
-FROM debian:bullseye-slim
+# Runtime stage
+FROM debian:slim
+
+# Copy only the built binary
+COPY --from=builder /app/target/release/felix-bot /usr/local/bin/
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y \
@@ -30,9 +30,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-# Copy the binary from the builder stage
-COPY --from=builder /app/target/release/felix-bot /usr/local/bin/felix-bot
 
 # Create a directory for the database
 RUN mkdir -p /app
