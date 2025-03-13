@@ -24,12 +24,13 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # Now copy the actual source code
 COPY src src/
 
-# Build the application with optimizations
+# Build the application with optimizations and copy the binary to a known location
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     touch src/main.rs && \
     cargo build --release && \
-    strip target/release/felix-bot
+    cp target/release/felix-bot /app/felix-bot && \
+    strip /app/felix-bot
 
 # Runtime stage - using a much smaller base image
 FROM debian:bookworm-slim AS runtime
@@ -50,7 +51,7 @@ WORKDIR /app
 RUN chown -R felix:felix /app
 
 # Copy only the built binary - do this after setting up the environment
-COPY --from=builder /app/target/release/felix-bot /usr/local/bin/
+COPY --from=builder /app/felix-bot /usr/local/bin/
 
 # Set proper permissions for the binary
 RUN chmod 755 /usr/local/bin/felix-bot
