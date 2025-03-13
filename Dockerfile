@@ -3,19 +3,10 @@ FROM rust:slim AS builder
 
 WORKDIR /app
 
-# Copy only files needed for dependency resolution
-COPY Cargo.toml Cargo.lock ./
-
-# Create a dummy main.rs to build dependencies
-RUN mkdir -p src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
-
-# Now copy the real source code
+# Copy the entire project
 COPY . .
 
-# Build the actual application with optimizations
+# Build the application with optimizations
 RUN cargo build --release
 
 # Runtime stage - using a much smaller base image
