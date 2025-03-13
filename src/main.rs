@@ -7,6 +7,9 @@
 //! # Environment Variables
 //! - `ANTHROPIC_API_KEY`: API key for Anthropic's Claude AI
 //! - `DISCORD_TOKEN`: Discord bot token
+//!
+//! # Command Line Arguments
+//! - `--test-mode`: Run in test mode to verify functionality without sending messages
 
 use anyhow::{anyhow, Context, Result};
 use rusqlite::OptionalExtension;
@@ -55,6 +58,14 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
     info!("Starting Felix Bot");
 
+    // Check for test mode
+    let args: Vec<String> = env::args().collect();
+    let test_mode = args.iter().any(|arg| arg == "--test-mode");
+    
+    if test_mode {
+        info!("Running in test mode - will verify functionality without sending messages");
+    }
+
     // Load environment variables
     let anthropic_api_key = env::var("ANTHROPIC_API_KEY")
         .context("ANTHROPIC_API_KEY environment variable not set")?;
@@ -88,10 +99,15 @@ async fn main() -> Result<()> {
     // Build and send message
     let message = build_message(&daily_data, &llm_message)?;
     
-    send_message(&http_client, &discord_token, &message).await
-        .context("Failed to send Discord message")?;
+    if test_mode {
+        info!("Test mode: Message generated successfully but not sent");
+        info!("Message preview (first 100 chars): {}", &message.chars().take(100).collect::<String>());
+    } else {
+        send_message(&http_client, &discord_token, &message).await
+            .context("Failed to send Discord message")?;
+        info!("Message sent successfully");
+    }
     
-    info!("Message sent successfully");
     Ok(())
 }
 

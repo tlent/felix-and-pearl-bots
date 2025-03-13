@@ -6,18 +6,27 @@
 # Rust
 target/
 **/*.rs.bk
+Cargo.lock.orig
 
 # Editor files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # Database files (we'll mount these at runtime)
 *.db
+*.sqlite
+*.sqlite3
 
 # Misc
 .DS_Store
 README.md
 LICENSE
-*.log 
+*.log
+.dockerignore
+Dockerfile
+*.md
+!README.md
+.env* 

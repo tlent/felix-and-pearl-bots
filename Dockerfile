@@ -19,7 +19,7 @@ COPY . .
 RUN cargo build --release
 
 # Runtime stage
-FROM debian:slim
+FROM debian:bookworm-slim
 
 # Copy only the built binary
 COPY --from=builder /app/target/release/felix-bot /usr/local/bin/
@@ -29,10 +29,16 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a non-root user to run the application
+RUN groupadd -r felix && useradd -r -g felix felix
+
 WORKDIR /app
 
-# Create a directory for the database
-RUN mkdir -p /app
+# Create a directory for the database and set permissions
+RUN mkdir -p /app && chown -R felix:felix /app
+
+# Switch to non-root user
+USER felix
 
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/felix-bot"] 

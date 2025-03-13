@@ -22,6 +22,14 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
+      # Generate version tag based on commit SHA
+      - name: Generate version tag
+        id: version
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+      
       # Build and push with caching enabled
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -29,7 +37,9 @@ jobs:
           context: .
           platforms: linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/felix-bot:latest
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/felix-bot:latest
+            ghcr.io/${{ github.repository_owner }}/felix-bot:${{ steps.version.outputs.date }}-${{ steps.version.outputs.tag }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/felix-bot:buildcache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/felix-bot:buildcache,mode=max
           build-args: |
@@ -46,6 +56,7 @@ jobs:
           target: "~/felix-bot"
       
       - name: Deploy to Raspberry Pi
+        id: deploy
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ vars.SSH_HOST }}
@@ -53,6 +64,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           fingerprint: ${{ vars.SSH_FINGERPRINT }}
           script: |
+            # Store the previous image tag for potential rollback
+            PREVIOUS_IMAGE=$(docker ps --filter "name=felix-bot" --format "{{.Image}}" 2>/dev/null || echo "none")
+            echo "Previous image: $PREVIOUS_IMAGE" > ~/felix-bot/rollback.txt
+            
             # Pull the latest image
             docker pull ghcr.io/${{ github.repository_owner }}/felix-bot:latest
             
@@ -63,6 +78,49 @@ jobs:
               echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> ~/felix-bot/.env
             fi
             
-            # Set up cron job if it doesn't exist
-            CRON_JOB="0 7 * * * docker run --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1"
-            (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
+            # Stop any running container
+            docker stop felix-bot 2>/dev/null || true
+            docker rm felix-bot 2>/dev/null || true
+            
+            # Run a test container to verify the image works
+            if docker run --name felix-bot-test --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot --test-mode; then
+              echo "Test passed, updating cron job"
+              
+              # Set up cron job if it doesn't exist
+              CRON_JOB="0 7 * * * docker run --rm --name felix-bot --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/${{ github.repository_owner }}/felix-bot:latest /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1"
+              (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
+              
+              # Save the current version for reference
+              echo "ghcr.io/${{ github.repository_owner }}/felix-bot:${{ steps.version.outputs.date }}-${{ steps.version.outputs.tag }}" > ~/felix-bot/current_version.txt
+              exit 0
+            else
+              echo "Test failed, not updating cron job"
+              exit 1
+            fi
+      
+      # Rollback if deployment fails
+      - name: Rollback on failure
+        if: failure() && steps.deploy.outcome == 'failure'
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ vars.SSH_FINGERPRINT }}
+          script: |
+            if [ -f ~/felix-bot/rollback.txt ]; then
+              PREVIOUS_IMAGE=$(cat ~/felix-bot/rollback.txt | cut -d' ' -f3)
+              if [ "$PREVIOUS_IMAGE" != "none" ]; then
+                echo "Rolling back to previous image: $PREVIOUS_IMAGE"
+                
+                # Update cron job with previous image
+                CRON_JOB="0 7 * * * docker run --rm --name felix-bot --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db $PREVIOUS_IMAGE /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1"
+                (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
+                
+                echo "Rollback completed"
+              else
+                echo "No previous image found for rollback"
+              fi
+            else
+              echo "No rollback information available"
+            fi
