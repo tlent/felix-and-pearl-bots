@@ -11,9 +11,9 @@
 //! # Command Line Arguments
 //! - `--test-mode`: Run in test mode to verify functionality without sending messages
 
-use chrono::Local;
 use log::info;
 use std::env;
+use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result};
 
 use felix_bot::config::{DB_PATH, NATIONAL_DAY_BASE_URL};
@@ -49,11 +49,10 @@ fn main() -> Result<()> {
         .with_context(|| format!("Failed to open database at {}", DB_PATH))?;
     
     // Get today's date
-    let today = Local::now().naive_local().date();
-    let ymd_date = today.format("%Y-%m-%d").to_string();
+    let (date_str, formatted_date) = get_today_date()?;
     
     // Fetch daily data
-    let daily_data = database::fetch_daily_data(&db_connection, today, &ymd_date)?;
+    let daily_data = database::fetch_daily_data(&db_connection, &date_str, &formatted_date)?;
     
     // Generate message using LLM
     let llm_message = ai::generate_llm_message(&anthropic_api_key, &daily_data)?;
@@ -70,4 +69,86 @@ fn main() -> Result<()> {
     }
     
     Ok(())
+}
+
+/// Gets today's date in both YYYY-MM-DD format and a human-readable format
+///
+/// # Returns
+/// A tuple containing (date_str, formatted_date)
+fn get_today_date() -> Result<(String, String)> {
+    // Get current time since UNIX epoch
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .context("Failed to get system time")?
+        .as_secs();
+    
+    // Convert to date components
+    // 86400 seconds in a day
+    let days_since_epoch = now / 86400;
+    
+    // January 1, 1970 was a Thursday (day 4)
+    let day_of_week = ((days_since_epoch + 4) % 7) as usize;
+    
+    // Simple algorithm to get year, month, day
+    let mut year = 1970;
+    let mut days_left = days_since_epoch;
+    
+    // Account for leap years
+    loop {
+        let days_in_year = if is_leap_year(year) { 366 } else { 365 };
+        if days_left < days_in_year {
+            break;
+        }
+        days_left -= days_in_year;
+        year += 1;
+    }
+    
+    // Determine month and day
+    let days_in_month = [
+        31,
+        if is_leap_year(year) { 29 } else { 28 },
+        31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+    ];
+    
+    let mut month = 0;
+    let mut day = days_left as u32 + 1; // +1 because days are 1-indexed
+    
+    while day > days_in_month[month] {
+        day -= days_in_month[month];
+        month += 1;
+    }
+    
+    // Month is 0-indexed in our calculation but 1-indexed in dates
+    month += 1;
+    
+    // Format as YYYY-MM-DD
+    let date_str = format!("{:04}-{:02}-{:02}", year, month, day);
+    
+    // Format as "Monday, January 1, 2025"
+    let weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    let months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ];
+    
+    let formatted_date = format!(
+        "{}, {} {}, {}",
+        weekdays[day_of_week],
+        months[month - 1],
+        day,
+        year
+    );
+    
+    Ok((date_str, formatted_date))
+}
+
+/// Determines if a year is a leap year
+///
+/// # Arguments
+/// * `year` - The year to check
+///
+/// # Returns
+/// true if the year is a leap year, false otherwise
+fn is_leap_year(year: u64) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
 }

@@ -18,7 +18,8 @@ pub fn generate_llm_message(
     api_key: &str,
     daily_data: &DailyData,
 ) -> Result<String> {
-    let formatted_date = daily_data.date.format("%A, %B %e, %Y").to_string();
+    // Use the pre-formatted date string
+    let formatted_date = &daily_data.formatted_date;
     
     let formatted_national_days = daily_data.national_days
         .iter()

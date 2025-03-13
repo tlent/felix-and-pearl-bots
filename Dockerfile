@@ -3,10 +3,11 @@ FROM rust:slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install build dependencies including SQLite development libraries
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     pkg-config \
+    libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only the files needed for dependency resolution first
@@ -35,10 +36,11 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # Runtime stage - using a much smaller base image
 FROM debian:bookworm-slim AS runtime
 
-# Install only essential runtime dependencies in a single layer
+# Install only essential runtime dependencies including SQLite in a single layer
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
+    libsqlite3-0 \
     && rm -rf /var/lib/apt/lists/* && \
     apt-get clean autoclean && \
     apt-get autoremove --yes

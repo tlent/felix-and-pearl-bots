@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use chrono::NaiveDate;
 use log::debug;
 use rusqlite::OptionalExtension;
 
@@ -9,21 +8,22 @@ use crate::models::{DailyData, NationalDay};
 ///
 /// # Arguments
 /// * `db_connection` - SQLite database connection
-/// * `date` - Today's date
-/// * `ymd_date` - Today's date formatted as YYYY-MM-DD
+/// * `date_str` - Today's date formatted as YYYY-MM-DD
+/// * `formatted_date` - Today's date formatted for display (e.g., "Monday, January 1, 2025")
 ///
 /// # Returns
 /// A `DailyData` struct containing today's date, national days, and any birthdays
 pub fn fetch_daily_data(
     db_connection: &rusqlite::Connection,
-    date: NaiveDate,
-    ymd_date: &str,
+    date_str: &str,
+    formatted_date: &str,
 ) -> Result<DailyData> {
-    let national_days = get_national_days(db_connection, ymd_date)?;
-    let birthday = get_birthday(db_connection, ymd_date)?;
+    let national_days = get_national_days(db_connection, date_str)?;
+    let birthday = get_birthday(db_connection, date_str)?;
     
     Ok(DailyData {
-        date,
+        date_str: date_str.to_string(),
+        formatted_date: formatted_date.to_string(),
         national_days,
         birthday,
     })
@@ -33,20 +33,20 @@ pub fn fetch_daily_data(
 ///
 /// # Arguments
 /// * `db_connection` - SQLite database connection
-/// * `ymd_date` - Date formatted as YYYY-MM-DD
+/// * `date_str` - Date formatted as YYYY-MM-DD
 ///
 /// # Returns
 /// A vector of `NationalDay` structs
 fn get_national_days(
     db_connection: &rusqlite::Connection,
-    ymd_date: &str,
+    date_str: &str,
 ) -> Result<Vec<NationalDay>> {
     let mut statement = db_connection
         .prepare("SELECT name, url FROM NationalDay WHERE occurrence_2025 = ?1")
         .context("Failed to prepare national days query")?;
     
     let rows = statement
-        .query_map([&ymd_date], |row| {
+        .query_map([date_str], |row| {
             Ok(NationalDay {
                 name: row.get(0)?,
                 url: row.get(1)?,
@@ -67,18 +67,18 @@ fn get_national_days(
 ///
 /// # Arguments
 /// * `db_connection` - SQLite database connection
-/// * `ymd_date` - Date formatted as YYYY-MM-DD
+/// * `date_str` - Date formatted as YYYY-MM-DD
 ///
 /// # Returns
 /// An optional string containing birthday information, or None if no birthdays today
 fn get_birthday(
     db_connection: &rusqlite::Connection,
-    ymd_date: &str,
+    date_str: &str,
 ) -> Result<Option<String>> {
     let result = db_connection
         .query_row(
             "SELECT description FROM Birthday WHERE date = ?1",
-            [&ymd_date],
+            [date_str],
             |row| row.get(0),
         )
         .optional()

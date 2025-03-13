@@ -19,7 +19,8 @@ pub fn build_message(
     llm_message: &str,
     national_day_base_url: &str,
 ) -> Result<String> {
-    let mut message = daily_data.date.format("%A, %B %e, %Y").to_string();
+    // Start with the formatted date
+    let mut message = daily_data.formatted_date.clone();
     
     // Add national days
     for day in &daily_data.national_days {

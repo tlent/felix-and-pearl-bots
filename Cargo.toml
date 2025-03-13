@@ -10,13 +10,11 @@ edition = "2024"
 anyhow = "1.0.79"
 # Simplified HTTP client with minimal features
 ureq = { version = "2.9.1", features = ["json"] }
-# SQLite with bundled feature for cross-platform compatibility
-rusqlite = { version = "0.30.0", features = ["bundled"] }
+# SQLite without bundled feature (using system SQLite instead)
+rusqlite = "0.30.0"
 # JSON serialization/deserialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.110"
-# Simple date handling
-chrono = "0.4.34"
 # Simple logging
 simple_logger = "4.3.3"
 log = "0.4.20"
