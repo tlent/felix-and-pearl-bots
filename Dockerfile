@@ -3,15 +3,22 @@ FROM rust:slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies including SQLite development libraries
+# Install build dependencies including SQLite development libraries and cross
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     pkg-config \
     libsqlite3-dev \
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
+    libc6-dev-arm64-cross \
     && rm -rf /var/lib/apt/lists/*
+
+# Install cargo-cross
+RUN cargo install cross
 
 # Copy only the files needed for dependency resolution first
 COPY Cargo.toml Cargo.lock ./
+COPY .cargo .cargo/
 
 # Create a minimal src directory with a dummy main
 RUN mkdir -p src && \
@@ -20,18 +27,18 @@ RUN mkdir -p src && \
 # Build dependencies only - this layer will be cached unless Cargo.toml/Cargo.lock change
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
-    cargo build --release
+    cross build --target aarch64-unknown-linux-gnu --release
 
 # Now copy the actual source code
 COPY src src/
 
-# Build the application with optimizations and copy the binary to a known location
+# Build the application with cross for ARM64
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     touch src/main.rs && \
-    cargo build --release && \
-    cp target/release/felix-bot /app/felix-bot && \
-    strip /app/felix-bot
+    cross build --target aarch64-unknown-linux-gnu --release && \
+    cp target/aarch64-unknown-linux-gnu/release/felix-bot /app/felix-bot && \
+    aarch64-linux-gnu-strip /app/felix-bot
 
 # Runtime stage - using a much smaller base image
 FROM debian:bookworm-slim AS runtime
