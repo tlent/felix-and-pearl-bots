@@ -1,4 +1,4 @@
-# Felix Bot
+# Felix Bot (Simplified)
 
 A Discord bot that posts daily messages about national days and special occasions. The messages are written from the perspective of a cat named Sir Felix Whiskersworth.
 
@@ -7,7 +7,16 @@ A Discord bot that posts daily messages about national days and special occasion
 - Fetches national days from a SQLite database
 - Generates creative messages using Claude AI
 - Posts daily messages to a Discord channel
-- Runs automatically at 7 AM every day
+- Minimal dependencies for better performance and smaller footprint
+
+## Simplified Architecture
+
+This version of Felix Bot has been optimized to use minimal dependencies while maintaining full functionality:
+
+- Replaced async/await (tokio) with synchronous code using ureq
+- Replaced time with chrono for date handling
+- Replaced tracing with simple_logger for logging
+- Uses anyhow for simplified error handling
 
 ## Deployment
 
@@ -17,6 +26,7 @@ A Discord bot that posts daily messages about national days and special occasion
 - Access to GitHub Container Registry
 - Discord bot token
 - Anthropic API key for Claude AI
+- SQLite database with national days and birthdays
 
 ### Automatic Deployment
 
@@ -42,13 +52,17 @@ If you need to set up the bot manually:
    echo "ANTHROPIC_API_KEY=your_key_here" > ~/felix-bot/.env
    echo "DISCORD_TOKEN=your_token_here" >> ~/felix-bot/.env
    ```
-4. Pull the Docker image:
+4. Copy your days.db file to the directory:
+   ```bash
+   cp /path/to/your/days.db ~/felix-bot/days.db
+   ```
+5. Pull the Docker image:
    ```bash
    docker pull ghcr.io/yourusername/felix-bot:latest
    ```
-5. Set up a cron job to run the bot daily at 7 AM:
+6. Set up a cron job to run the bot daily at 7 AM:
    ```bash
-   (crontab -l 2>/dev/null; echo "0 7 * * * docker run --rm --env-file ~/felix-bot/.env ghcr.io/yourusername/felix-bot:latest /usr/local/bin/felix-bot >> ~/felix-bot/felix-bot.log 2>&1") | crontab -
+   (crontab -l 2>/dev/null; echo "0 7 * * * docker run --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/yourusername/felix-bot:latest >> ~/felix-bot/felix-bot.log 2>&1") | crontab -
    ```
 
 ### Checking Logs
@@ -64,7 +78,13 @@ cat ~/felix-bot/felix-bot.log
 To run the bot manually:
 
 ```bash
-docker run --rm --env-file ~/felix-bot/.env ghcr.io/yourusername/felix-bot:latest /usr/local/bin/felix-bot
+docker run --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/yourusername/felix-bot:latest
+```
+
+To run in test mode (verifies functionality without sending messages):
+
+```bash
+docker run --rm --env-file ~/felix-bot/.env -v ~/felix-bot/days.db:/app/days.db ghcr.io/yourusername/felix-bot:latest --test-mode
 ```
 
 ## Development
@@ -78,7 +98,8 @@ docker run --rm --env-file ~/felix-bot/.env ghcr.io/yourusername/felix-bot:lates
    export ANTHROPIC_API_KEY=your_key_here
    export DISCORD_TOKEN=your_token_here
    ```
-4. Run the bot:
+4. Make sure you have a days.db file in the project root
+5. Run the bot:
    ```bash
    cargo run
    ```

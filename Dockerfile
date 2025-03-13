@@ -36,8 +36,8 @@ RUN groupadd -r felix && useradd -r -g felix felix
 
 WORKDIR /app
 
-# Create a directory for the database and set permissions
-RUN mkdir -p /app && chown -R felix:felix /app
+# Set permissions
+RUN chown -R felix:felix /app
 
 # Switch to non-root user
 USER felix
