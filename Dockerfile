@@ -3,20 +3,40 @@ FROM rust:slim AS builder
 
 WORKDIR /app
 
-# Copy the entire project
-COPY . .
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only the files needed for dependency resolution first
+COPY Cargo.toml Cargo.lock ./
+
+# Create a minimal src directory with a dummy main
+RUN mkdir -p src && \
+    echo 'fn main() {}' > src/main.rs
+
+# Build dependencies only - this layer will be cached unless Cargo.toml/Cargo.lock change
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo build --release
+
+# Now copy the actual source code
+COPY src src/
 
 # Build the application with optimizations
-RUN cargo build --release
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    touch src/main.rs && \
+    cargo build --release && \
+    strip target/release/felix-bot
 
 # Runtime stage - using a much smaller base image
 FROM debian:bookworm-slim AS runtime
 
-# Copy only the built binary
-COPY --from=builder /app/target/release/felix-bot /usr/local/bin/
-
-# Install only essential runtime dependencies
-RUN apt-get update && apt-get install -y \
+# Install only essential runtime dependencies in a single layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/* && \
     apt-get clean autoclean && \
@@ -25,10 +45,15 @@ RUN apt-get update && apt-get install -y \
 # Create a non-root user to run the application
 RUN groupadd -r felix && useradd -r -g felix felix
 
+# Create directory structure and set permissions
 WORKDIR /app
-
-# Set permissions
 RUN chown -R felix:felix /app
+
+# Copy only the built binary - do this after setting up the environment
+COPY --from=builder /app/target/release/felix-bot /usr/local/bin/
+
+# Set proper permissions for the binary
+RUN chmod 755 /usr/local/bin/felix-bot
 
 # Switch to non-root user
 USER felix
