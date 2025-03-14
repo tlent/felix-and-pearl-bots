@@ -1,4 +1,4 @@
-name: FelixBot Deploy
+name: FelixBot Build and Push
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   packages: write
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       # Checkout the repository code
@@ -64,71 +64,3 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
             CARGO_NET_GIT_FETCH_WITH_CLI=true
-
-      # Create deployment directories on server
-      - name: Create deployment directories
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ vars.SSH_HOST }}
-          username: ${{ vars.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            # Create standard directories with proper permissions
-            # Use sudo to create directories in system locations
-            sudo mkdir -p /opt/felix-bot
-            sudo mkdir -p /etc/felix-bot
-            sudo mkdir -p /var/lib/felix-bot
-            sudo mkdir -p /var/log/felix-bot
-            
-            # Set ownership to the current user since cron will run as this user
-            # This ensures the user can read/write to these directories
-            sudo chown -R $(whoami):$(whoami) /opt/felix-bot /etc/felix-bot /var/lib/felix-bot /var/log/felix-bot
-            
-            # Set appropriate permissions
-            # More restrictive for config and data
-            sudo chmod 755 /opt/felix-bot
-            sudo chmod 750 /etc/felix-bot
-            sudo chmod 750 /var/lib/felix-bot
-            sudo chmod 750 /var/log/felix-bot
-
-      # Copy days.db and deploy.sh to the server
-      - name: Copy days.db and deploy.sh to server
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ vars.SSH_HOST }}
-          username: ${{ vars.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "days.db,deploy.sh"
-          target: "/opt/felix-bot"
-          overwrite: true
-
-      # Deploy to Raspberry Pi using a script
-      - name: Deploy to Raspberry Pi
-        id: deploy
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ vars.SSH_HOST }}
-          username: ${{ vars.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            chmod +x /opt/felix-bot/deploy.sh
-            bash /opt/felix-bot/deploy.sh ${{ github.repository_owner }} ${{ steps.version.outputs.date }}-${{ steps.version.outputs.tag }}
-
-      # Rollback if deployment fails
-      - name: Rollback on failure
-        if: failure() && steps.deploy.outcome == 'failure'
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ vars.SSH_HOST }}
-          username: ${{ vars.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            if [ -f /opt/felix-bot/rollback.txt ]; then
-              PREVIOUS_IMAGE=$(cat /opt/felix-bot/rollback.txt | cut -d' ' -f3)
-              if [ "$PREVIOUS_IMAGE" != "none" ]; then
-                echo "Rolling back to $PREVIOUS_IMAGE"
-                CRON_JOB="0 7 * * * docker run --rm --name felix-bot --env-file /etc/felix-bot/.env -v /var/lib/felix-bot/days.db:/app/days.db $PREVIOUS_IMAGE /usr/local/bin/felix-bot >> /var/log/felix-bot/felix-bot.log 2>&1"
-                (crontab -l 2>/dev/null | grep -v "felix-bot"; echo "$CRON_JOB") | crontab -
-                echo "Rollback completed"
-              fi
-            fi
