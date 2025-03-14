@@ -72,7 +72,7 @@ jobs:
           host: ${{ vars.SSH_HOST }}
           username: ${{ vars.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ vars.SSH_FINGERPRINT }}
+          # fingerprint: ${{ vars.SSH_# fingerPRINT }}
           source: "days.db,deploy.sh"
           target: "~/felix-bot"
 
@@ -84,7 +84,7 @@ jobs:
           host: ${{ vars.SSH_HOST }}
           username: ${{ vars.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ vars.SSH_FINGERPRINT }}
+          # fingerprint: ${{ vars.SSH_# fingerPRINT }}
           script: |
             chmod +x ~/felix-bot/deploy.sh
             bash ~/felix-bot/deploy.sh ${{ github.repository_owner }} ${{ steps.version.outputs.date }}-${{ steps.version.outputs.tag }}
@@ -97,7 +97,7 @@ jobs:
           host: ${{ vars.SSH_HOST }}
           username: ${{ vars.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ vars.SSH_FINGERPRINT }}
+          # fingerprint: ${{ vars.SSH_FINGERPRINT }}
           script: |
             if [ -f ~/felix-bot/rollback.txt ]; then
               PREVIOUS_IMAGE=$(cat ~/felix-bot/rollback.txt | cut -d' ' -f3)
