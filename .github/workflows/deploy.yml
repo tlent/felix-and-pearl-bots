@@ -75,6 +75,7 @@ jobs:
           # fingerprint: ${{ vars.SSH_# fingerPRINT }}
           source: "days.db,deploy.sh"
           target: "~/felix-bot"
+          overwrite: true
 
       # Deploy to Raspberry Pi using a script
       - name: Deploy to Raspberry Pi
