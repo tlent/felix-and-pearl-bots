@@ -15,10 +15,12 @@ RUN apt-get update && \
 # Set up Rust toolchain for ARM64
 RUN rustup target add aarch64-unknown-linux-gnu
 
-# Configure Cargo for cross-compilation
+# Configure Cargo for cross-compilation with specific target features
+# Targeting a more compatible set of CPU features for older ARM processors
 RUN mkdir -p .cargo && \
     echo '[target.aarch64-unknown-linux-gnu]' > .cargo/config.toml && \
-    echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
+    echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml && \
+    echo 'rustflags = ["-C", "target-feature=-crt-static,+v8a,-crypto,-neon"]' >> .cargo/config.toml
 
 # Copy dependency files first for caching
 COPY Cargo.toml Cargo.lock ./
