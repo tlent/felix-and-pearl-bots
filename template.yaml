@@ -1,14 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
-Description: Felix & Pearl Bot - A Discord bot duo that posts daily messages about national days and weather updates
-
-Globals:
-  Function:
-    Timeout: 30
-    MemorySize: 128
-    Architectures:
-      - arm64
+Description: Felix and Pearl Bot - A Discord bot duo that posts daily messages about national days and weather updates
 
 Resources:
   FelixPearlBotFunction:
@@ -17,6 +10,10 @@ Resources:
       CodeUri: ./
       Handler: lambda_function.lambda_handler
       Runtime: python3.12
+      Timeout: 30
+      MemorySize: 128
+      Architectures:
+        - arm64
       Environment:
         Variables:
           ANTHROPIC_API_KEY: !Ref AnthropicApiKey
@@ -36,34 +33,14 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: cron(0 7 * * ? *)
-            Description: "Trigger Felix & Pearl Bot at 7 AM Eastern Time"
+            Description: "Trigger Felix and Pearl Bot at 7 AM Eastern Time"
             Enabled: true
-      Tags:
-        Project: FelixPearlBot
-        Environment: Production
-        Services: "NationalDays-Weather-Birthdays"
 
 Parameters:
   AnthropicApiKey:
     Type: String
-    Description: API key for Anthropic's Claude API (used by both Felix and Pearl)
+    Description: API key for Anthropic's Claude API
     NoEcho: true
-  WeatherApiKey:
-    Type: String
-    Description: API key for OpenWeather API (used by Pearl's weather service)
-    NoEcho: true
-  WeatherLocation:
-    Type: String
-    Description: Location for weather updates (e.g., "City,State,Country")
-    Default: "Merrick,NY,US"
-  WeatherLat:
-    Type: String
-    Description: Latitude for weather updates
-    Default: "40.6587"
-  WeatherLon:
-    Type: String
-    Description: Longitude for weather updates
-    Default: "-73.5515"
   FelixWebhookUrl:
     Type: String
     Description: Discord webhook URL for Felix's messages
@@ -72,13 +49,25 @@ Parameters:
     Type: String
     Description: Discord webhook URL for Pearl's messages
     NoEcho: true
+  WeatherApiKey:
+    Type: String
+    Description: API key for OpenWeather API
+    NoEcho: true
+  WeatherLocation:
+    Type: String
+    Description: Location for weather updates
+  WeatherLat:
+    Type: String
+    Description: Latitude for weather updates
+  WeatherLon:
+    Type: String
+    Description: Longitude for weather updates
   BirthdaysConfig:
     Type: String
     Description: JSON string containing birthday data
-    Default: "{\"02-16\": {\"name\": \"Thomas\"}, \"11-13\": {\"name\": \"Dylan\"}, \"04-21\": {\"name\": \"Maryann\"}}"
     NoEcho: true
 
 Outputs:
   FelixPearlBotFunction:
-    Description: Felix & Pearl Bot Lambda Function ARN
+    Description: Felix and Pearl Bot Lambda Function ARN
     Value: !GetAtt FelixPearlBotFunction.Arn 
