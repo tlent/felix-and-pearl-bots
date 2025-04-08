@@ -6,7 +6,7 @@ from birthday_config import load_birthdays, BIRTHDAYS, MESSAGE_TYPES
 def test_load_birthdays_valid_json():
     """Test loading birthdays with valid JSON configuration."""
     test_config = {
-        "04-16": {"name": "Test Person", "is_own_birthday": False}
+        "04-16": {"name": "Test Person"}
     }
     with patch.dict(os.environ, {'BIRTHDAYS_CONFIG': json.dumps(test_config)}):
         result = load_birthdays()

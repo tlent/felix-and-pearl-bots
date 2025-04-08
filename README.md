@@ -84,8 +84,8 @@ The bot uses the following environment variables:
 Birthdays are configured in `birthday_config.py` without exposing personal information. The format is:
 ```python
 BIRTHDAYS = {
-    "MM-DD": {"name": "display_name", "is_own_birthday": boolean},
-    # Example: "04-16": {"name": "Felix", "is_own_birthday": true}
+    "MM-DD": {"name": "display_name"},
+    # Example: "04-16": {"name": "Felix"}
 }
 ```
 

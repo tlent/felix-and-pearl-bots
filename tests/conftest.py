@@ -14,6 +14,7 @@ def aws_credentials():
     os.environ['AWS_ACCESS_KEY_ID'] = 'test'
     os.environ['AWS_SECRET_ACCESS_KEY'] = 'test'
     os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
+    os.environ['AWS_REGION'] = 'us-east-1'  # Some AWS SDK versions use this
     os.environ['AWS_SESSION_TOKEN'] = 'test'
     os.environ['AWS_SECURITY_TOKEN'] = 'test'
 
@@ -28,9 +29,9 @@ def app_env():
         'WEATHER_API_KEY': 'test_weather_key',
         'WEATHER_LOCATION': 'Test City,TS,US',
         'BIRTHDAYS_CONFIG': json.dumps({
-            "04-16": {"name": "Test Person", "is_own_birthday": False},
-            "04-23": {"name": "Felix", "is_own_birthday": True},
-            "04-21": {"name": "Pearl", "is_own_birthday": True}
+            "04-16": {"name": "Test Person"},
+            "04-23": {"name": "Felix"},
+            "04-21": {"name": "Pearl"}
         })
     }
     with patch.dict(os.environ, env_vars):
@@ -45,7 +46,7 @@ def mock_env():
         'PEARL_DISCORD_WEBHOOK_URL': 'https://discord.com/api/webhooks/test',
         'WEATHER_API_KEY': 'test-key',
         'WEATHER_LOCATION': 'Test City,Test State,Test Country',
-        'BIRTHDAYS_CONFIG': '{"04-16": {"name": "Felix", "is_own_birthday": true}}',
+        'BIRTHDAYS_CONFIG': '{"04-16": {"name": "Felix"}}',
         'TEST_MODE': 'true'
     }
     with patch.dict(os.environ, env_vars):
@@ -86,9 +87,9 @@ def mock_datetime():
 def test_birthdays_config():
     """Fixture providing test birthday configuration."""
     return {
-        "04-16": {"name": "Test Person", "is_own_birthday": False},
-        "04-23": {"name": "Felix", "is_own_birthday": True},
-        "04-21": {"name": "Pearl", "is_own_birthday": True}
+        "04-16": {"name": "Test Person"},
+        "04-23": {"name": "Felix"},
+        "04-21": {"name": "Pearl"}
     }
 
 @pytest.fixture(scope="session")

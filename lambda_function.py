@@ -23,8 +23,12 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Initialize AWS clients
-s3 = boto3.client('s3')
-ssm = boto3.client('ssm')
+def get_aws_clients():
+    """Initialize AWS clients"""
+    return {
+        's3': boto3.client('s3'),
+        'ssm': boto3.client('ssm')
+    }
 
 # Initialize Anthropic client
 claude = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
