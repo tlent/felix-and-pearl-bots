@@ -46,10 +46,10 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cp target/aarch64-unknown-linux-gnu/release/felix-bot /app/felix-bot && \
     aarch64-linux-gnu-strip /app/felix-bot
 
-# Runtime stage: Create a minimal image
-FROM debian:bookworm-slim AS runtime
+# Runtime stage: Create a minimal image with ARM64 base
+FROM arm64v8/debian:bookworm-slim AS runtime
 
-# Install runtime dependencies (remove ca-certificates if not needed)
+# Install runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     libsqlite3-0 \
