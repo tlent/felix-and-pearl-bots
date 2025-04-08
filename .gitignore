@@ -46,3 +46,4 @@ Thumbs.db
 birthdays.json
 env.json
 .env*
+!.env.example
