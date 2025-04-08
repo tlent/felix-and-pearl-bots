@@ -35,17 +35,7 @@ Resources:
         - SSMParameterReadPolicy:
             ParameterName: /felix-pearl-bot/*
       Events:
-        DailyScheduleEDT:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 11 * 3-11 ? *)
-            Description: "Trigger Felix & Pearl Bot at 11 AM EDT"
-        DailyScheduleEST:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 12 * 1-2,12 ? *)
-            Description: "Trigger Felix & Pearl Bot at 12 PM EST"
-        ScheduleEvent:
+        DailySchedule:
           Type: Schedule
           Properties:
             Schedule: cron(0 7 * * ? *)
@@ -60,9 +50,6 @@ Parameters:
   AnthropicApiKey:
     Type: String
     Description: API key for Anthropic's Claude API (used by both Felix and Pearl)
-  DiscordWebhookUrl:
-    Type: String
-    Description: Discord webhook URL for posting messages from both Felix and Pearl
   WeatherApiKey:
     Type: String
     Description: API key for OpenWeather API (used by Pearl's weather service)
@@ -81,13 +68,6 @@ Parameters:
     Type: String
     Description: JSON string containing birthday data
     NoEcho: true
-  TestMode:
-    Type: String
-    Description: Enable test mode (true/false)
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
 
 Outputs:
   FelixPearlBotFunction:

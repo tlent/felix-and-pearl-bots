@@ -124,14 +124,11 @@ def generate_birthday_message(birthday_info: Dict, character: Dict) -> str:
 
     if is_own_birthday:
         prompt = OWN_BIRTHDAY_PROMPT.format(
-            full_name=character["full_name"],
-            description=character["description"]
+            full_name=character["full_name"], description=character["description"]
         )
     else:
         prompt = OTHER_BIRTHDAY_PROMPT.format(
-            full_name=character["full_name"],
-            description=character["description"],
-            name=name
+            full_name=character["full_name"], description=character["description"], name=name
         )
 
     return generate_message_with_claude(prompt, character)
@@ -145,8 +142,7 @@ def generate_thank_you_message(birthday_info: Dict, character: Dict) -> str:
         character: Dictionary containing character information
     """
     prompt = THANK_YOU_PROMPT.format(
-        full_name=character["full_name"],
-        description=character["description"]
+        full_name=character["full_name"], description=character["description"]
     )
 
     return generate_message_with_claude(prompt, character)
@@ -377,13 +373,13 @@ def generate_weather_message(weather_data: Dict) -> Optional[str]:
             full_name=PEARL["full_name"],
             description=PEARL["description"],
             location=env.weather_location,
-            temperature=weather_data['temperature'],
-            feels_like=weather_data['feels_like'],
-            weather_description=weather_data['description'],
-            humidity=weather_data['humidity'],
-            wind_speed=weather_data['wind_speed'],
-            sunrise=weather_data['sunrise'],
-            sunset=weather_data['sunset'],
+            temperature=weather_data["temperature"],
+            feels_like=weather_data["feels_like"],
+            weather_description=weather_data["description"],
+            humidity=weather_data["humidity"],
+            wind_speed=weather_data["wind_speed"],
+            sunrise=weather_data["sunrise"],
+            sunset=weather_data["sunset"],
         )
 
         return generate_message_with_claude(prompt, PEARL)

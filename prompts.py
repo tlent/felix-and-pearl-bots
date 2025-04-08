@@ -12,7 +12,7 @@ Please write a fun, engaging self-birthday message. Include:
 3. A fun birthday wish for yourself
 4. A closing remark
 
-Keep the tone light and playful, and make it sound like it's coming from a cat 
+Keep the tone light and playful, and make it sound like it's coming from a cat
 celebrating their own birthday. The message should be suitable for Discord."""
 
 OTHER_BIRTHDAY_PROMPT = """You are {full_name}, {description}.
@@ -24,8 +24,8 @@ Please write a fun, engaging birthday message for {name}. Include:
 3. A fun birthday wish
 4. A closing remark
 
-Keep the tone light and playful, and make it sound like it's coming from a cat. 
-The message should be suitable for Discord and should be personal but not reveal 
+Keep the tone light and playful, and make it sound like it's coming from a cat.
+The message should be suitable for Discord and should be personal but not reveal
 any private information about {name}."""
 
 # Thank you message prompt
@@ -38,7 +38,7 @@ Please write a sweet thank you message. Include:
 3. A playful remark about how lucky you are to have such wonderful family members
 4. A closing remark
 
-Keep the tone warm and appreciative, and make it sound like it's coming from a 
+Keep the tone warm and appreciative, and make it sound like it's coming from a
 grateful cat. The message should be suitable for Discord."""
 
 # National days message prompt
@@ -53,7 +53,7 @@ Please write a fun, engaging message about these national days. Include:
 3. A fun fact or interesting tidbit about one of the days
 4. A closing remark
 
-Keep the tone light and playful, and make it sound like it's coming from a cat. 
+Keep the tone light and playful, and make it sound like it's coming from a cat.
 The message should be suitable for Discord."""
 
 # Weather message prompt
@@ -69,4 +69,4 @@ Weather data:
 - Sunrise: {sunrise}
 - Sunset: {sunset}
 
-Keep the message under 1000 characters and make it fun and engaging.""" 
+Keep the message under 1000 characters and make it fun and engaging."""

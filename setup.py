@@ -13,4 +13,4 @@ setup(
         "beautifulsoup4",
         "pytz",
     ],
-) 
+)

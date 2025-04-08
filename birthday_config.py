@@ -7,20 +7,19 @@ import os
 import json
 from typing import Dict
 
+
 def load_birthdays() -> Dict:
     """Load birthday configuration from environment variable."""
-    birthdays_json = os.environ.get('BIRTHDAYS_CONFIG', '{}')
+    birthdays_json = os.environ.get("BIRTHDAYS_CONFIG", "{}")
     try:
         return json.loads(birthdays_json)
     except json.JSONDecodeError:
         return {}
+
 
 # Birthday configuration loaded from environment variable
 # Format: {"MM-DD": {"name": "display_name"}}
 BIRTHDAYS = load_birthdays()
 
 # Message types for birthday messages
-MESSAGE_TYPES = {
-    "friend": "friend_birthday",
-    "self": "self_birthday"
-} 
+MESSAGE_TYPES = {"friend": "friend_birthday", "self": "self_birthday"}
