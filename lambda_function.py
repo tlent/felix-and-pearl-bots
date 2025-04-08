@@ -1,4 +1,3 @@
-import os
 import json
 import logging
 from datetime import datetime
@@ -13,8 +12,15 @@ from dotenv import load_dotenv
 
 # Import configurations
 from birthday_config import BIRTHDAYS
-from bot_config import BOT_NAMES, BOT_BIRTHDAYS, FELIX, PEARL
+from bot_config import BOT_NAMES, FELIX, PEARL
 from env_config import env
+from prompts import (
+    OWN_BIRTHDAY_PROMPT,
+    OTHER_BIRTHDAY_PROMPT,
+    THANK_YOU_PROMPT,
+    NATIONAL_DAYS_PROMPT,
+    WEATHER_PROMPT,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,13 +29,12 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+
 # Initialize AWS clients
 def get_aws_clients():
     """Initialize AWS clients"""
-    return {
-        's3': boto3.client('s3'),
-        'ssm': boto3.client('ssm')
-    }
+    return {"s3": boto3.client("s3"), "ssm": boto3.client("ssm")}
+
 
 # Initialize Anthropic client
 claude = anthropic.Anthropic(api_key=env.anthropic_api_key)
@@ -40,20 +45,29 @@ PEARL_WEBHOOK_URL = env.pearl_webhook_url
 
 # Weather API configuration for Pearl's service
 WEATHER_API_KEY = env.weather_api_key
-WEATHER_API_URL = f"https://api.openweathermap.org/data/3.0/onecall?lat={env.weather_lat}&lon={env.weather_lon}&appid={WEATHER_API_KEY}&units=imperial&exclude=minutely,hourly,daily,alerts"
+WEATHER_API_URL = (
+    f"https://api.openweathermap.org/data/3.0/onecall"
+    f"?lat={env.weather_lat}&lon={env.weather_lon}"
+    f"&appid={WEATHER_API_KEY}&units=imperial"
+    f"&exclude=minutely,hourly,daily,alerts"
+)
+
 
 class NationalDay:
     """Represents a national day with its name, URL, and optional occurrence text."""
+
     def __init__(self, name: str, url: str, occurrence_text: Optional[str] = None):
         self.name = name
         self.url = url
         self.occurrence_text = occurrence_text
 
+
 def is_test_mode(event: Dict) -> bool:
     """Check if we're in test mode based on event or environment variable."""
-    test_mode = env.test_mode or event.get('test_mode', False)
+    test_mode = env.test_mode or event.get("test_mode", False)
     logger.info(f"Test mode: {test_mode}")
     return test_mode
+
 
 def check_birthdays(test_date: Optional[str] = None) -> List[Dict]:
     """
@@ -68,17 +82,18 @@ def check_birthdays(test_date: Optional[str] = None) -> List[Dict]:
         logger.info(f"Using test date: {date_str}")
     else:
         # Get current date in Eastern Time
-        eastern = pytz.timezone('America/New_York')
+        eastern = pytz.timezone("America/New_York")
         now = datetime.now(eastern)
         date_str = now.strftime("%m-%d")
-    
+
     # Check if today is anyone's birthday
     birthdays = []
     if date_str in BIRTHDAYS:
         birthdays.append(BIRTHDAYS[date_str])
         logger.info(f"Found birthday for {BIRTHDAYS[date_str]['name']}!")
-    
+
     return birthdays
+
 
 def generate_message_with_claude(prompt: str, character: Dict) -> str:
     """
@@ -92,11 +107,10 @@ def generate_message_with_claude(prompt: str, character: Dict) -> str:
         max_tokens=1000,
         temperature=0.7,
         system=f"You are {character['full_name']}, {character['description']}.",
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role": "user", "content": prompt}],
     )
     return response.content[0].text
+
 
 def generate_birthday_message(birthday_info: Dict, character: Dict) -> str:
     """
@@ -105,33 +119,23 @@ def generate_birthday_message(birthday_info: Dict, character: Dict) -> str:
         birthday_info: Dictionary containing birthday information
         character: Dictionary containing character information
     """
-    name = birthday_info['name']
+    name = birthday_info["name"]
     is_own_birthday = name == character["name"]
-    
+
     if is_own_birthday:
-        prompt = f"""You are {character["full_name"]}, {character["description"]}.
-Today is your own birthday!
-
-Please write a fun, engaging self-birthday message. Include:
-1. A birthday greeting to yourself
-2. A playful reference to something you enjoy
-3. A fun birthday wish for yourself
-4. A closing remark
-
-Keep the tone light and playful, and make it sound like it's coming from a cat celebrating their own birthday. The message should be suitable for Discord."""
+        prompt = OWN_BIRTHDAY_PROMPT.format(
+            full_name=character["full_name"],
+            description=character["description"]
+        )
     else:
-        prompt = f"""You are {character["full_name"]}, {character["description"]}.
-Today is {name}'s birthday!
+        prompt = OTHER_BIRTHDAY_PROMPT.format(
+            full_name=character["full_name"],
+            description=character["description"],
+            name=name
+        )
 
-Please write a fun, engaging birthday message for {name}. Include:
-1. A birthday greeting
-2. A playful reference to something {name} might enjoy
-3. A fun birthday wish
-4. A closing remark
-
-Keep the tone light and playful, and make it sound like it's coming from a cat. The message should be suitable for Discord and should be personal but not reveal any private information about {name}."""
-    
     return generate_message_with_claude(prompt, character)
+
 
 def generate_thank_you_message(birthday_info: Dict, character: Dict) -> str:
     """
@@ -140,24 +144,21 @@ def generate_thank_you_message(birthday_info: Dict, character: Dict) -> str:
         birthday_info: Dictionary containing birthday information
         character: Dictionary containing character information
     """
-    prompt = f"""You are {character["full_name"]}, {character["description"]}.
-Today is your birthday, and you just received birthday wishes from your sibling cat and your family!
+    prompt = THANK_YOU_PROMPT.format(
+        full_name=character["full_name"],
+        description=character["description"]
+    )
 
-Please write a sweet thank you message. Include:
-1. A thank you to your sibling cat for their birthday wishes
-2. A thank you to your family for their love and support
-3. A playful remark about how lucky you are to have such wonderful family members
-4. A closing remark
-
-Keep the tone warm and appreciative, and make it sound like it's coming from a grateful cat. The message should be suitable for Discord."""
-    
     return generate_message_with_claude(prompt, character)
 
-def send_discord_message(content: str, webhook_url: str, character_name: str, test_mode: bool = False) -> bool:
+
+def send_discord_message(
+    content: str, webhook_url: str, character_name: str, test_mode: bool = False
+) -> bool:
     """
     Send a message to Discord using the provided webhook URL.
     Returns True if successful, False otherwise.
-    
+
     Args:
         content: The message content to send
         webhook_url: The Discord webhook URL to use
@@ -168,48 +169,51 @@ def send_discord_message(content: str, webhook_url: str, character_name: str, te
         if test_mode:
             logger.info(f"Test mode: Would send {character_name}'s message: {content}")
             return True
-            
-        response = requests.post(
-            webhook_url,
-            json={'content': content},
-            timeout=10
-        )
-        
+
+        response = requests.post(webhook_url, json={"content": content}, timeout=10)
+
         if response.status_code == 204:
             logger.info(f"{character_name}'s message sent successfully")
             return True
         else:
             logger.error(f"Failed to send {character_name}'s message: HTTP {response.status_code}")
             return False
-            
+
     except Exception as e:
         logger.error(f"Error sending {character_name}'s message: {str(e)}")
         return False
+
 
 # Wrapper functions for Felix and Pearl
 def generate_felix_birthday_message(birthday_info: Dict) -> str:
     """Generate a birthday message from Felix's perspective."""
     return generate_birthday_message(birthday_info, FELIX)
 
+
 def generate_pearl_birthday_message(birthday_info: Dict) -> str:
     """Generate a birthday message from Pearl's perspective."""
     return generate_birthday_message(birthday_info, PEARL)
+
 
 def generate_felix_thank_you_message(birthday_info: Dict) -> str:
     """Generate a thank you message from Felix's perspective."""
     return generate_thank_you_message(birthday_info, FELIX)
 
+
 def generate_pearl_thank_you_message(birthday_info: Dict) -> str:
     """Generate a thank you message from Pearl's perspective."""
     return generate_thank_you_message(birthday_info, PEARL)
+
 
 def send_felix_message(content: str, test_mode: bool = False) -> bool:
     """Send a message using Felix's webhook."""
     return send_discord_message(content, env.felix_webhook_url, FELIX["name"], test_mode)
 
+
 def send_pearl_message(content: str, test_mode: bool = False) -> bool:
     """Send a message using Pearl's webhook."""
     return send_discord_message(content, env.pearl_webhook_url, PEARL["name"], test_mode)
+
 
 def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
     """
@@ -218,97 +222,108 @@ def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
     """
     try:
         # Get current date in Eastern Time
-        eastern = pytz.timezone('America/New_York')
+        eastern = pytz.timezone("America/New_York")
         now = datetime.now(eastern)
-        month = now.strftime('%B').lower()
+        month = now.strftime("%B").lower()
         day = now.day
-        
+
         # Construct URL
         url = f"https://www.nationaldaycalendar.com/{month}/{month}-{day}"
         logger.info(f"Fetching national days from: {url}")
-        
+
         # Make request with proper headers
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
         }
-        
+
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        
+
         # Parse HTML
         try:
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(response.text, "html.parser")
             national_days = []
-            
+
             # Find all national day cards
-            cards = soup.select('.m-card--header a')
+            cards = soup.select(".m-card--header a")
             logger.info(f"Found {len(cards)} total cards")
-            
+
             # Words/phrases that indicate a non-national day entry
             excluded_phrases = [
-                'birthdays and events',
-                'on this day',
-                'historical events',
-                'celebrity birthdays'
+                "birthdays and events",
+                "on this day",
+                "historical events",
+                "celebrity birthdays",
             ]
-            
+
             for card in cards:
                 try:
                     text = card.get_text(strip=True)
                     logger.debug(f"Processing card: {text}")
-                    
+
                     # Skip if this is not a national day
                     text_lower = text.lower()
                     if any(phrase in text_lower for phrase in excluded_phrases):
                         logger.debug(f"Skipping non-national day entry: {text}")
                         continue
-                        
+
                     # Skip if it doesn't start with "NATIONAL" or "INTERNATIONAL"
-                    if not (text.upper().startswith('NATIONAL') or text.upper().startswith('INTERNATIONAL')):
+                    if not (
+                        text.upper().startswith("NATIONAL")
+                        or text.upper().startswith("INTERNATIONAL")
+                    ):
                         logger.debug(f"Skipping non-national/international day: {text}")
                         continue
-                    
+
                     # Parse name and occurrence text
                     name = text
                     occurrence_text = None
-                    
+
                     # Try different separators
-                    for separator in [' | ', ' - ', '| ', '- ']:
+                    for separator in [" | ", " - ", "| ", "- "]:
                         if separator in text:
                             name, occurrence_text = text.split(separator, 1)
                             break
-                    
-                    national_days.append(NationalDay(
-                        name=name.strip(),
-                        url=card.get('href', '#'),
-                        occurrence_text=occurrence_text.strip() if occurrence_text else None
-                    ))
+
+                    national_days.append(
+                        NationalDay(
+                            name=name.strip(),
+                            url=card.get("href", "#"),
+                            occurrence_text=occurrence_text.strip() if occurrence_text else None,
+                        )
+                    )
                 except (AttributeError, KeyError) as e:
                     logger.warning(f"Error processing card: {str(e)}")
                     continue
-            
+
             if not national_days:
                 logger.warning("No national days found on the page")
                 return [], "No national days found on the page"
-                
+
             logger.info("Found National Days:")
             for day in national_days:
-                logger.info(f"- {day.name}" + (f" ({day.occurrence_text})" if day.occurrence_text else ""))
-                
+                logger.info(
+                    f"- {day.name}" + (f" ({day.occurrence_text})" if day.occurrence_text else "")
+                )
+
             return national_days, None
-            
+
         except Exception as e:
             logger.error(f"Error parsing HTML: {str(e)}")
             return [], f"Error parsing HTML: {str(e)}"
-            
+
     except requests.RequestException as e:
         logger.error(f"Request error: {str(e)}")
         return [], f"Failed to fetch data: {str(e)}"
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         return [], f"Unexpected error: {str(e)}"
+
 
 def get_weather() -> Optional[Dict]:
     """Fetch weather data"""
@@ -317,27 +332,31 @@ def get_weather() -> Optional[Dict]:
         response = requests.get(env.weather_api_url)
         response.raise_for_status()
         weather_data = response.json()
-        
+
         # Convert sunrise and sunset times to Eastern timezone
-        eastern = pytz.timezone('America/New_York')
-        sunrise_time = datetime.fromtimestamp(weather_data['current']['sunrise'], tz=pytz.UTC).astimezone(eastern)
-        sunset_time = datetime.fromtimestamp(weather_data['current']['sunset'], tz=pytz.UTC).astimezone(eastern)
-        
+        eastern = pytz.timezone("America/New_York")
+        sunrise_time = datetime.fromtimestamp(
+            weather_data["current"]["sunrise"], tz=pytz.UTC
+        ).astimezone(eastern)
+        sunset_time = datetime.fromtimestamp(
+            weather_data["current"]["sunset"], tz=pytz.UTC
+        ).astimezone(eastern)
+
         # Extract relevant weather information
         weather = {
-            'temperature': round(weather_data['current']['temp']),
-            'feels_like': round(weather_data['current']['feels_like']),
-            'description': weather_data['current']['weather'][0]['description'],
-            'humidity': weather_data['current']['humidity'],
-            'wind_speed': round(weather_data['current']['wind_speed']),
-            'sunrise': sunrise_time.strftime('%I:%M %p'),
-            'sunset': sunset_time.strftime('%I:%M %p')
+            "temperature": round(weather_data["current"]["temp"]),
+            "feels_like": round(weather_data["current"]["feels_like"]),
+            "description": weather_data["current"]["weather"][0]["description"],
+            "humidity": weather_data["current"]["humidity"],
+            "wind_speed": round(weather_data["current"]["wind_speed"]),
+            "sunrise": sunrise_time.strftime("%I:%M %p"),
+            "sunset": sunset_time.strftime("%I:%M %p"),
         }
-        
+
         logger.info("Weather Data:")
         for key, value in weather.items():
             logger.info(f"{key}: {value}")
-        
+
         return weather
     except (requests.RequestException, KeyError, ValueError, TypeError, AttributeError) as e:
         # These are non-critical errors that shouldn't fail the entire lambda
@@ -348,61 +367,58 @@ def get_weather() -> Optional[Dict]:
         logger.error(f"Unexpected error fetching weather (non-critical): {str(e)}")
         return None
 
+
 def generate_weather_message(weather_data: Dict) -> Optional[str]:
     """Generate a weather message using Claude from Pearl's perspective."""
     try:
         logger.info("Generating weather message")
-        
-        prompt = f"""You are {PEARL["full_name"]}, {PEARL["description"]}. 
-        Generate a fun, engaging message about today's weather in {env.weather_location}. 
-        Use cat-themed weather observations and include some playful weather-related cat facts.
-        
-        Weather data:
-        - Temperature: {weather_data['temperature']}°F (feels like {weather_data['feels_like']}°F)
-        - Conditions: {weather_data['description']}
-        - Humidity: {weather_data['humidity']}%
-        - Wind Speed: {weather_data['wind_speed']} mph
-        - Sunrise: {weather_data['sunrise']}
-        - Sunset: {weather_data['sunset']}
-        
-        Keep the message under 1000 characters and make it fun and engaging."""
-        
+
+        prompt = WEATHER_PROMPT.format(
+            full_name=PEARL["full_name"],
+            description=PEARL["description"],
+            location=env.weather_location,
+            temperature=weather_data['temperature'],
+            feels_like=weather_data['feels_like'],
+            weather_description=weather_data['description'],
+            humidity=weather_data['humidity'],
+            wind_speed=weather_data['wind_speed'],
+            sunrise=weather_data['sunrise'],
+            sunset=weather_data['sunset'],
+        )
+
         return generate_message_with_claude(prompt, PEARL)
     except Exception as e:
         # Weather message generation errors are non-critical
         logger.error(f"Error generating weather message (non-critical): {str(e)}")
         return None
 
+
 def generate_national_days_message(national_days: List[NationalDay]) -> Optional[str]:
     """Generate a message about national days from Felix's perspective."""
     try:
         # Format the national days data
-        days_text = "\n".join([
-            f"- {day.name}" + (f" ({day.occurrence_text})" if day.occurrence_text else "")
-            for day in national_days
-        ])
-        
+        days_text = "\n".join(
+            [
+                f"- {day.name}" + (f" ({day.occurrence_text})" if day.occurrence_text else "")
+                for day in national_days
+            ]
+        )
+
         logger.info("National Days Found:")
         logger.info(days_text)
-        
-        prompt = f"""You are {FELIX["full_name"]}, {FELIX["description"]}. 
-Today's national days are:
 
-{days_text}
-
-Please write a fun, engaging message about these national days. Include:
-1. A greeting
-2. A brief mention of each national day
-3. A fun fact or interesting tidbit about one of the days
-4. A closing remark
-
-Keep the tone light and playful, and make it sound like it's coming from a cat. The message should be suitable for Discord."""
+        prompt = NATIONAL_DAYS_PROMPT.format(
+            full_name=FELIX["full_name"],
+            description=FELIX["description"],
+            days_text=days_text,
+        )
 
         return generate_message_with_claude(prompt, FELIX)
     except Exception as e:
         # National days message generation errors are non-critical
         logger.error(f"Error generating national days message (non-critical): {str(e)}")
         return None
+
 
 def lambda_handler(event, context):
     """
@@ -413,7 +429,7 @@ def lambda_handler(event, context):
         # Check if we're in test mode
         test_mode = is_test_mode(event)
         logger.info("Starting Felix & Pearl Bot execution")
-        
+
         # Check for birthdays
         birthdays = check_birthdays()
         if birthdays:
@@ -423,22 +439,22 @@ def lambda_handler(event, context):
                 felix_message = generate_felix_birthday_message(birthday)
                 if not send_felix_message(felix_message, test_mode=test_mode):
                     logger.error("Failed to send Felix's birthday message")
-                
+
                 # Generate and send Pearl's message
                 pearl_message = generate_pearl_birthday_message(birthday)
                 if not send_pearl_message(pearl_message, test_mode=test_mode):
                     logger.error("Failed to send Pearl's birthday message")
-                
+
                 # If it's one of the bots' birthdays, send thank you messages
-                if birthday['name'] in BOT_NAMES:
+                if birthday["name"] in BOT_NAMES:
                     thank_you_message = generate_felix_thank_you_message(birthday)
                     if not send_felix_message(thank_you_message, test_mode=test_mode):
                         logger.error("Failed to send Felix's thank you message")
-                    
+
                     thank_you_message = generate_pearl_thank_you_message(birthday)
                     if not send_pearl_message(thank_you_message, test_mode=test_mode):
                         logger.error("Failed to send Pearl's thank you message")
-        
+
         # Get national days
         national_days, error = get_national_days()
         if error:
@@ -448,7 +464,7 @@ def lambda_handler(event, context):
             felix_message = generate_national_days_message(national_days)
             if felix_message and not send_felix_message(felix_message, test_mode=test_mode):
                 logger.error("Failed to send Felix's national days message")
-        
+
         # Get weather
         weather_data = get_weather()
         if weather_data:
@@ -456,15 +472,9 @@ def lambda_handler(event, context):
             pearl_message = generate_weather_message(weather_data)
             if pearl_message and not send_pearl_message(pearl_message, test_mode=test_mode):
                 logger.error("Failed to send Pearl's weather message")
-        
-        return {
-            'statusCode': 200,
-            'body': json.dumps('Felix & Pearl Bot execution completed')
-        }
-        
+
+        return {"statusCode": 200, "body": json.dumps("Felix & Pearl Bot execution completed")}
+
     except Exception as e:
         logger.error(f"Error in lambda handler: {str(e)}")
-        return {
-            'statusCode': 500,
-            'body': json.dumps(f'Error: {str(e)}')
-        } 
+        return {"statusCode": 500, "body": json.dumps(f"Error: {str(e)}")}
