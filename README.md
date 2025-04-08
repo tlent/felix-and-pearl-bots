@@ -22,16 +22,28 @@ The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time.
 ## Project Structure
 
 ```
-felix-pearl-bot/
+felix-and-pearl-bots/
 ├── lambda_function.py    # Main Lambda function handling all services
-├── app.py                # Message handling
-├── birthday_config.py    # Birthday configuration (no personal information)
-├── requirements.txt      # Python dependencies
-├── template.yaml         # AWS SAM template
-├── tests/               # Test directory
-│   ├── test_lambda_function.py
-│   └── test_app.py
-└── README.md            # This file
+├── app.py               # Message handling and Discord integration
+├── birthday_config.py   # Birthday configuration
+├── bot_config.py       # General bot configuration
+├── requirements.txt    # Python dependencies
+├── template.yaml       # AWS SAM template
+├── setup.py           # Package setup configuration
+├── pytest.ini         # Pytest configuration
+├── .env.example       # Example environment variables template
+├── env.json           # Local development environment variables
+├── events/            # Test event files
+├── tests/             # Test directory
+│   ├── unit/          # Unit tests
+│   │   ├── test_app.py
+│   │   ├── test_env_config.py
+│   │   ├── test_message_generation.py
+│   │   └── test_birthday_config.py
+│   ├── integration/   # Integration tests
+│   │   └── test_lambda_handler.py
+│   └── conftest.py    # Shared test fixtures
+└── README.md          # This file
 ```
 
 ## Setup
@@ -40,8 +52,9 @@ felix-pearl-bot/
 
 1. Clone the repository
 2. Install dependencies: `pip install -r requirements.txt`
-3. Deploy: `sam build && sam deploy --guided`
-4. Configure environment variables in AWS Systems Manager
+3. Copy `.env.example` to `.env` and fill in your values
+4. Deploy: `sam build && sam deploy --guided`
+5. Configure environment variables in AWS Systems Manager
 
 ### Prerequisites
 
@@ -52,32 +65,24 @@ felix-pearl-bot/
 - Discord webhook URL (used by both bots)
 - OpenWeather API key (used by Pearl's weather service)
 
-### Deployment
+### Configuration Files
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
+The project uses several configuration files:
+- `birthday_config.py`: Contains birthday configuration (no personal information)
+- `bot_config.py`: Contains general bot configuration and settings
+- `.env.example`: Template for environment variables (copy to `.env` for local development)
+- `env.json`: Local development environment variables for SAM CLI
 
-# Deploy using SAM
-sam build
-sam deploy --guided
-```
+### Environment Variables
 
-During the guided deployment, you'll need to provide:
-- Anthropic API key (for both bots' message generation)
-- Discord webhook URL (for both bots' messages)
-- OpenWeather API key (for Pearl's weather service)
-- Weather location
-
-## Configuration
-
-The bot uses the following environment variables:
+The bot uses the following environment variables (configure in AWS Systems Manager or `.env`):
 - `ANTHROPIC_API_KEY`: Your Anthropic API key (used by both bots)
 - `FELIX_DISCORD_WEBHOOK_URL`: Discord webhook URL for Felix's messages
 - `PEARL_DISCORD_WEBHOOK_URL`: Discord webhook URL for Pearl's messages
 - `WEATHER_API_KEY`: OpenWeather API key (for Pearl's weather service)
 - `WEATHER_LOCATION`: Location for weather updates (optional)
 - `BIRTHDAYS_CONFIG`: JSON string containing birthday configuration
+- `TEST_MODE`: When set to 'true', prevents actual Discord messages from being sent (useful for testing)
 
 ## Birthday Configuration
 
