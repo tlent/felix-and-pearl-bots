@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
-Description: Felix and Pearl Bot - A Discord bot duo that posts daily messages about national days and weather updates
+Description: Felix-Pearl-Bot-Discord-Weather-Updates
 
 Resources:
   FelixPearlBotFunction:
@@ -28,46 +28,51 @@ Resources:
           TZ: "America/New_York"
       Policies:
         - AWSLambdaBasicExecutionRole
+      Tags:
+        project: felix-pearl-bot
+        environment: prod
+        service: discord-bot
+        created-by: sam
       Events:
         DailySchedule:
           Type: Schedule
           Properties:
             Schedule: cron(0 7 * * ? *)
-            Description: "Trigger Felix and Pearl Bot at 7 AM Eastern Time"
+            Description: daily-trigger
             Enabled: true
 
 Parameters:
   AnthropicApiKey:
     Type: String
-    Description: API key for Anthropic's Claude API
+    Description: anthropic-api-key
     NoEcho: true
   FelixWebhookUrl:
     Type: String
-    Description: Discord webhook URL for Felix's messages
+    Description: felix-discord-webhook
     NoEcho: true
   PearlWebhookUrl:
     Type: String
-    Description: Discord webhook URL for Pearl's messages
+    Description: pearl-discord-webhook
     NoEcho: true
   WeatherApiKey:
     Type: String
-    Description: API key for OpenWeather API
+    Description: weather-api-key
     NoEcho: true
   WeatherLocation:
     Type: String
-    Description: Location for weather updates
+    Description: weather-location
   WeatherLat:
     Type: String
-    Description: Latitude for weather updates
+    Description: weather-latitude
   WeatherLon:
     Type: String
-    Description: Longitude for weather updates
+    Description: weather-longitude
   BirthdaysConfig:
     Type: String
-    Description: JSON string containing birthday data
+    Description: birthdays-json-config
     NoEcho: true
 
 Outputs:
   FelixPearlBotFunction:
-    Description: Felix and Pearl Bot Lambda Function ARN
+    Description: felix-pearl-bot-lambda-arn
     Value: !GetAtt FelixPearlBotFunction.Arn 
