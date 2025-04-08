@@ -4,8 +4,4 @@ requests
 python-dateutil
 python-dotenv
 beautifulsoup4
-pytz
-pytest
-pytest-cov
-pytest-mock
-moto 
+pytz 

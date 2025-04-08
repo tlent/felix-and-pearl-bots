@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 # Import configurations
 from birthday_config import BIRTHDAYS
 from bot_config import BOT_NAMES, BOT_BIRTHDAYS, FELIX, PEARL
+from env_config import env
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,15 +32,15 @@ def get_aws_clients():
     }
 
 # Initialize Anthropic client
-claude = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
+claude = anthropic.Anthropic(api_key=env.anthropic_api_key)
 
 # Discord webhooks for both bots
-FELIX_WEBHOOK_URL = os.environ['FELIX_DISCORD_WEBHOOK_URL']
-PEARL_WEBHOOK_URL = os.environ['PEARL_DISCORD_WEBHOOK_URL']
+FELIX_WEBHOOK_URL = env.felix_webhook_url
+PEARL_WEBHOOK_URL = env.pearl_webhook_url
 
 # Weather API configuration for Pearl's service
-WEATHER_API_KEY = os.environ['WEATHER_API_KEY']
-WEATHER_LOCATION = os.environ.get('WEATHER_LOCATION', 'unknown')
+WEATHER_API_KEY = env.weather_api_key
+WEATHER_LOCATION = env.weather_location
 WEATHER_API_URL = f"https://api.openweathermap.org/data/2.5/weather?q={WEATHER_LOCATION}&appid={WEATHER_API_KEY}&units=imperial"
 
 class NationalDay:
@@ -51,7 +52,7 @@ class NationalDay:
 
 def is_test_mode(event: Dict) -> bool:
     """Check if we're in test mode based on event or environment variable."""
-    test_mode = event.get('test_mode', False) or os.environ.get('TEST_MODE', 'false').lower() == 'true'
+    test_mode = env.test_mode or event.get('test_mode', False)
     logger.info(f"Test mode: {test_mode}")
     return test_mode
 
@@ -80,193 +81,136 @@ def check_birthdays(test_date: Optional[str] = None) -> List[Dict]:
     
     return birthdays
 
-def generate_felix_birthday_message(birthday_info: Dict) -> str:
+def generate_message_with_claude(prompt: str, character: Dict) -> str:
     """
-    Generate a birthday message using Claude from Felix's perspective.
+    Generate a message using Claude from a character's perspective.
     Args:
-        birthday_info: Dictionary containing birthday information
+        prompt: The prompt to send to Claude
+        character: Dictionary containing character information (name, description, etc.)
     """
-    name = birthday_info['name']
-    is_own_birthday = name == FELIX["name"]
-    
-    # Create the prompt for Claude
-    if is_own_birthday:
-        prompt = f"""You are {FELIX["full_name"]}, {FELIX["description"]}.
-Today is your own birthday!
-
-Please write a fun, engaging self-birthday message. Include:
-1. A birthday greeting to yourself
-2. A playful reference to something you enjoy
-3. A fun birthday wish for yourself
-4. A closing remark
-
-Keep the tone light and playful, and make it sound like it's coming from a cat celebrating their own birthday. The message should be suitable for Discord."""
-    else:
-        prompt = f"""You are {FELIX["full_name"]}, {FELIX["description"]}.
-Today is {name}'s birthday!
-
-Please write a fun, engaging birthday message for {name}. Include:
-1. A birthday greeting
-2. A playful reference to something {name} might enjoy
-3. A fun birthday wish
-4. A closing remark
-
-Keep the tone light and playful, and make it sound like it's coming from a cat. The message should be suitable for Discord and should be personal but not reveal any private information about {name}."""
-    
-    # Get response from Claude
     response = claude.messages.create(
         model="claude-3-5-haiku-latest",
         max_tokens=1000,
         temperature=0.7,
-        system=f"You are {FELIX['full_name']}, {FELIX['description']}.",
+        system=f"You are {character['full_name']}, {character['description']}.",
         messages=[
             {"role": "user", "content": prompt}
         ]
     )
-    
     return response.content[0].text
 
-def generate_pearl_birthday_message(birthday_info: Dict) -> str:
-    """
-    Generate a birthday message using Claude from Pearl's perspective.
-    Args:
-        birthday_info: Dictionary containing birthday information
-    """
-    name = birthday_info['name']
-    is_own_birthday = name == PEARL["name"]
-    
-    # Create the prompt for Claude
-    if is_own_birthday:
-        prompt = f"""You are {PEARL["full_name"]}, {PEARL["description"]}.
-Today is your own birthday!
-
-Please write a fun, engaging self-birthday message. Include:
-1. A birthday greeting to yourself
-2. A playful reference to something you enjoy
-3. A fun birthday wish for yourself
-4. A closing remark
-
-Keep the tone light and playful, and make it sound like it's coming from a cat celebrating their own birthday. The message should be suitable for Discord."""
-    else:
-        prompt = f"""You are {PEARL["full_name"]}, {PEARL["description"]}.
-Today is {name}'s birthday!
-
-Please write a fun, engaging birthday message for {name}. Include:
-1. A birthday greeting
-2. A playful reference to something {name} might enjoy
-3. A fun birthday wish
-4. A closing remark
-
-Keep the tone light and playful, and make it sound like it's coming from a cat. The message should be suitable for Discord and should be personal but not reveal any private information about {name}."""
-    
-    # Get response from Claude
-    response = claude.messages.create(
-        model="claude-3-5-haiku-latest",
-        max_tokens=1000,
-        temperature=0.7,
-        system=f"You are {PEARL['full_name']}, {PEARL['description']}.",
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
-    )
-    
-    return response.content[0].text
-
-def generate_birthday_message(birthday_info: Dict, is_felix: bool = True) -> str:
+def generate_birthday_message(birthday_info: Dict, character: Dict) -> str:
     """
     Generate a birthday message using Claude.
     Args:
         birthday_info: Dictionary containing birthday information
-        is_felix: Boolean indicating if the message is from Felix (True) or Pearl (False)
+        character: Dictionary containing character information
     """
-    if is_felix:
-        return generate_felix_birthday_message(birthday_info)
+    name = birthday_info['name']
+    is_own_birthday = name == character["name"]
+    
+    if is_own_birthday:
+        prompt = f"""You are {character["full_name"]}, {character["description"]}.
+Today is your own birthday!
+
+Please write a fun, engaging self-birthday message. Include:
+1. A birthday greeting to yourself
+2. A playful reference to something you enjoy
+3. A fun birthday wish for yourself
+4. A closing remark
+
+Keep the tone light and playful, and make it sound like it's coming from a cat celebrating their own birthday. The message should be suitable for Discord."""
     else:
-        return generate_pearl_birthday_message(birthday_info)
+        prompt = f"""You are {character["full_name"]}, {character["description"]}.
+Today is {name}'s birthday!
 
-def generate_felix_thank_you_message(birthday_info: Dict) -> str:
-    """
-    Generate a thank you message for birthday wishes from Felix's perspective.
-    Args:
-        birthday_info: Dictionary containing birthday information
-    """
-    name = birthday_info['name']
-    
-    # Felix's character details
-    character_full_name = "Sir Felix Whiskersworth"
-    character_description = "a distinguished feline who loves to share interesting facts"
-    
-    prompt = f"""You are {character_full_name}, {character_description}.
-Today is your birthday, and you just received birthday wishes from your sibling cat and your family!
-
-Please write a sweet thank you message. Include:
-1. A thank you to your sibling cat for their birthday wishes
-2. A thank you to your family for their love and support
-3. A playful remark about how lucky you are to have such wonderful family members
+Please write a fun, engaging birthday message for {name}. Include:
+1. A birthday greeting
+2. A playful reference to something {name} might enjoy
+3. A fun birthday wish
 4. A closing remark
 
-Keep the tone warm and appreciative, and make it sound like it's coming from a grateful cat. The message should be suitable for Discord."""
+Keep the tone light and playful, and make it sound like it's coming from a cat. The message should be suitable for Discord and should be personal but not reveal any private information about {name}."""
     
-    # Get response from Claude
-    response = claude.messages.create(
-        model="claude-3-5-haiku-latest",
-        max_tokens=1000,
-        temperature=0.7,
-        system=f"You are {character_full_name}, {character_description}.",
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
-    )
-    
-    return response.content[0].text
+    return generate_message_with_claude(prompt, character)
 
-def generate_pearl_thank_you_message(birthday_info: Dict) -> str:
-    """
-    Generate a thank you message for birthday wishes from Pearl's perspective.
-    Args:
-        birthday_info: Dictionary containing birthday information
-    """
-    name = birthday_info['name']
-    
-    # Pearl's character details
-    character_full_name = "Lady Pearl Weatherpaws"
-    character_description = "a sophisticated cat who loves weather and is witty and playful"
-    
-    prompt = f"""You are {character_full_name}, {character_description}.
-Today is your birthday, and you just received birthday wishes from your sibling cat and your family!
-
-Please write a sweet thank you message. Include:
-1. A thank you to your sibling cat for their birthday wishes
-2. A thank you to your family for their love and support
-3. A playful remark about how lucky you are to have such wonderful family members
-4. A closing remark
-
-Keep the tone warm and appreciative, and make it sound like it's coming from a grateful cat. The message should be suitable for Discord."""
-    
-    # Get response from Claude
-    response = claude.messages.create(
-        model="claude-3-5-haiku-latest",
-        max_tokens=1000,
-        temperature=0.7,
-        system=f"You are {character_full_name}, {character_description}.",
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
-    )
-    
-    return response.content[0].text
-
-def generate_thank_you_message(birthday_info: Dict, is_felix: bool = True) -> str:
+def generate_thank_you_message(birthday_info: Dict, character: Dict) -> str:
     """
     Generate a thank you message for birthday wishes.
     Args:
         birthday_info: Dictionary containing birthday information
-        is_felix: Boolean indicating if the message is from Felix (True) or Pearl (False)
+        character: Dictionary containing character information
     """
-    if is_felix:
-        return generate_felix_thank_you_message(birthday_info)
-    else:
-        return generate_pearl_thank_you_message(birthday_info)
+    prompt = f"""You are {character["full_name"]}, {character["description"]}.
+Today is your birthday, and you just received birthday wishes from your sibling cat and your family!
+
+Please write a sweet thank you message. Include:
+1. A thank you to your sibling cat for their birthday wishes
+2. A thank you to your family for their love and support
+3. A playful remark about how lucky you are to have such wonderful family members
+4. A closing remark
+
+Keep the tone warm and appreciative, and make it sound like it's coming from a grateful cat. The message should be suitable for Discord."""
+    
+    return generate_message_with_claude(prompt, character)
+
+def send_discord_message(content: str, webhook_url: str, character_name: str, test_mode: bool = False) -> bool:
+    """
+    Send a message to Discord using the provided webhook URL.
+    Returns True if successful, False otherwise.
+    
+    Args:
+        content: The message content to send
+        webhook_url: The Discord webhook URL to use
+        character_name: The name of the character sending the message (for logging)
+        test_mode: Whether we're in test mode
+    """
+    try:
+        if test_mode:
+            logger.info(f"Test mode: Would send {character_name}'s message: {content}")
+            return True
+            
+        response = requests.post(
+            webhook_url,
+            json={'content': content},
+            timeout=10
+        )
+        
+        if response.status_code == 204:
+            logger.info(f"{character_name}'s message sent successfully")
+            return True
+        else:
+            logger.error(f"Failed to send {character_name}'s message: HTTP {response.status_code}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error sending {character_name}'s message: {str(e)}")
+        return False
+
+# Wrapper functions for Felix and Pearl
+def generate_felix_birthday_message(birthday_info: Dict) -> str:
+    """Generate a birthday message from Felix's perspective."""
+    return generate_birthday_message(birthday_info, FELIX)
+
+def generate_pearl_birthday_message(birthday_info: Dict) -> str:
+    """Generate a birthday message from Pearl's perspective."""
+    return generate_birthday_message(birthday_info, PEARL)
+
+def generate_felix_thank_you_message(birthday_info: Dict) -> str:
+    """Generate a thank you message from Felix's perspective."""
+    return generate_thank_you_message(birthday_info, FELIX)
+
+def generate_pearl_thank_you_message(birthday_info: Dict) -> str:
+    """Generate a thank you message from Pearl's perspective."""
+    return generate_thank_you_message(birthday_info, PEARL)
+
+def send_felix_message(content: str, test_mode: bool = False) -> bool:
+    """Send a message using Felix's webhook."""
+    return send_discord_message(content, env.felix_webhook_url, FELIX["name"], test_mode)
+
+def send_pearl_message(content: str, test_mode: bool = False) -> bool:
+    """Send a message using Pearl's webhook."""
+    return send_discord_message(content, env.pearl_webhook_url, PEARL["name"], test_mode)
 
 def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
     """
@@ -371,7 +315,7 @@ def get_weather() -> Optional[Dict]:
     """Fetch weather data"""
     try:
         logger.info("Fetching weather from OpenWeather API")
-        response = requests.get(WEATHER_API_URL)
+        response = requests.get(env.weather_api_url)
         response.raise_for_status()
         weather_data = response.json()
         
@@ -410,12 +354,8 @@ def generate_weather_message(weather_data: Dict) -> Optional[str]:
     try:
         logger.info("Generating weather message")
         
-        # Get location from environment variable
-        location = os.environ.get('WEATHER_LOCATION', 'unknown')
-        
-        # Create the prompt for Claude
-        prompt = f"""You are Lady Pearl Weatherpaws, a sophisticated and witty cat who loves to talk about the weather. 
-        Generate a fun, engaging message about today's weather in {location}. 
+        prompt = f"""You are {PEARL["full_name"]}, {PEARL["description"]}. 
+        Generate a fun, engaging message about today's weather in {env.weather_location}. 
         Use cat-themed weather observations and include some playful weather-related cat facts.
         
         Weather data:
@@ -428,29 +368,14 @@ def generate_weather_message(weather_data: Dict) -> Optional[str]:
         
         Keep the message under 1000 characters and make it fun and engaging."""
         
-        # Generate message using Claude
-        message = claude.messages.create(
-            model="claude-3-5-haiku-latest",
-            max_tokens=1000,
-            temperature=0.7,
-            system="You are Lady Pearl Weatherpaws, a sophisticated cat who loves weather. Be witty and playful.",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        weather_message = message.content[0].text
-        logger.info("Generated Weather Message:")
-        logger.info(weather_message)
-        
-        return weather_message
+        return generate_message_with_claude(prompt, PEARL)
     except Exception as e:
         # Weather message generation errors are non-critical
         logger.error(f"Error generating weather message (non-critical): {str(e)}")
         return None
 
-def generate_message(national_days: List[NationalDay]) -> Optional[str]:
-    """Generate a message using Claude about the national days from Felix's perspective."""
+def generate_national_days_message(national_days: List[NationalDay]) -> Optional[str]:
+    """Generate a message about national days from Felix's perspective."""
     try:
         # Format the national days data
         days_text = "\n".join([
@@ -461,8 +386,7 @@ def generate_message(national_days: List[NationalDay]) -> Optional[str]:
         logger.info("National Days Found:")
         logger.info(days_text)
         
-        # Create the prompt for Claude
-        prompt = f"""You are Sir Felix Whiskersworth, a distinguished feline who loves to share interesting facts about national days. 
+        prompt = f"""You are {FELIX["full_name"]}, {FELIX["description"]}. 
 Today's national days are:
 
 {days_text}
@@ -475,54 +399,11 @@ Please write a fun, engaging message about these national days. Include:
 
 Keep the tone light and playful, and make it sound like it's coming from a cat. The message should be suitable for Discord."""
 
-        # Get response from Claude
-        response = claude.messages.create(
-            model="claude-3-5-haiku-latest",
-            max_tokens=1000,
-            temperature=0.7,
-            system="You are Sir Felix Whiskersworth, a distinguished feline who loves to share interesting facts about national days.",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        return response.content[0].text
+        return generate_message_with_claude(prompt, FELIX)
     except Exception as e:
         # National days message generation errors are non-critical
         logger.error(f"Error generating national days message (non-critical): {str(e)}")
         return None
-
-def send_discord_message(content: str, webhook_url: str, test_mode: bool = False) -> bool:
-    """
-    Send a message to Discord using the provided webhook URL.
-    Returns True if successful, False otherwise.
-    
-    Args:
-        content: The message content to send
-        webhook_url: The Discord webhook URL
-        test_mode: Whether we're in test mode
-    """
-    try:
-        if test_mode:
-            logger.info(f"Test mode: Would send message: {content}")
-            return True
-            
-        response = requests.post(
-            webhook_url,
-            json={'content': content},
-            timeout=10
-        )
-        
-        if response.status_code == 204:
-            logger.info("Message sent successfully")
-            return True
-        else:
-            logger.error(f"Failed to send message: HTTP {response.status_code}")
-            return False
-            
-    except Exception as e:
-        logger.error(f"Error sending message: {str(e)}")
-        return False
 
 def lambda_handler(event, context):
     """
@@ -541,22 +422,22 @@ def lambda_handler(event, context):
             for birthday in birthdays:
                 # Generate and send Felix's message
                 felix_message = generate_felix_birthday_message(birthday)
-                if not send_discord_message(felix_message, FELIX_WEBHOOK_URL, test_mode):
+                if not send_felix_message(felix_message, test_mode=test_mode):
                     logger.error("Failed to send Felix's birthday message")
                 
                 # Generate and send Pearl's message
                 pearl_message = generate_pearl_birthday_message(birthday)
-                if not send_discord_message(pearl_message, PEARL_WEBHOOK_URL, test_mode):
+                if not send_pearl_message(pearl_message, test_mode=test_mode):
                     logger.error("Failed to send Pearl's birthday message")
                 
                 # If it's one of the bots' birthdays, send thank you messages
                 if birthday['name'] in BOT_NAMES:
                     thank_you_message = generate_felix_thank_you_message(birthday)
-                    if not send_discord_message(thank_you_message, FELIX_WEBHOOK_URL, test_mode):
+                    if not send_felix_message(thank_you_message, test_mode=test_mode):
                         logger.error("Failed to send Felix's thank you message")
                     
                     thank_you_message = generate_pearl_thank_you_message(birthday)
-                    if not send_discord_message(thank_you_message, PEARL_WEBHOOK_URL, test_mode):
+                    if not send_pearl_message(thank_you_message, test_mode=test_mode):
                         logger.error("Failed to send Pearl's thank you message")
         
         # Get national days
@@ -565,8 +446,8 @@ def lambda_handler(event, context):
             logger.error(f"Error getting national days: {error}")
         elif national_days:
             # Generate and send Felix's message
-            felix_message = generate_message(national_days)
-            if felix_message and not send_discord_message(felix_message, FELIX_WEBHOOK_URL, test_mode):
+            felix_message = generate_national_days_message(national_days)
+            if felix_message and not send_felix_message(felix_message, test_mode=test_mode):
                 logger.error("Failed to send Felix's national days message")
         
         # Get weather
@@ -574,7 +455,7 @@ def lambda_handler(event, context):
         if weather_data:
             # Generate and send Pearl's message
             pearl_message = generate_weather_message(weather_data)
-            if pearl_message and not send_discord_message(pearl_message, PEARL_WEBHOOK_URL, test_mode):
+            if pearl_message and not send_pearl_message(pearl_message, test_mode=test_mode):
                 logger.error("Failed to send Pearl's weather message")
         
         return {

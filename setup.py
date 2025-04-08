@@ -13,11 +13,4 @@ setup(
         "beautifulsoup4",
         "pytz",
     ],
-    extras_require={
-        "dev": [
-            "pytest",
-            "pytest-cov",
-            "pytest-mock",
-        ],
-    },
 ) 

@@ -30,19 +30,9 @@ felix-and-pearl-bots/
 ├── requirements.txt    # Python dependencies
 ├── template.yaml       # AWS SAM template
 ├── setup.py           # Package setup configuration
-├── pytest.ini         # Pytest configuration
 ├── .env.example       # Example environment variables template
 ├── env.json           # Local development environment variables
 ├── events/            # Test event files
-├── tests/             # Test directory
-│   ├── unit/          # Unit tests
-│   │   ├── test_app.py
-│   │   ├── test_env_config.py
-│   │   ├── test_message_generation.py
-│   │   └── test_birthday_config.py
-│   ├── integration/   # Integration tests
-│   │   └── test_lambda_handler.py
-│   └── conftest.py    # Shared test fixtures
 └── README.md          # This file
 ```
 
@@ -102,46 +92,6 @@ When a birthday occurs:
 # Run locally
 sam local invoke FelixPearlBotFunction
 ```
-
-## Testing
-
-The project includes a comprehensive test suite with both unit and integration tests. The tests use pytest and include mocked AWS services using moto.
-
-### Test Structure
-```
-tests/
-├── unit/                  # Unit tests
-│   ├── test_app.py       # Tests for app.py
-│   ├── test_env_config.py
-│   ├── test_message_generation.py
-│   └── test_birthday_config.py
-├── integration/          # Integration tests
-│   └── test_lambda_handler.py  # Tests for lambda_handler
-└── conftest.py          # Shared test fixtures
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-python -m pytest tests/
-
-# Run only unit tests
-python -m pytest tests/unit/
-
-# Run only integration tests
-python -m pytest tests/integration/
-
-# Run with coverage report
-python -m pytest --cov=. tests/
-```
-
-### Test Environment
-
-The tests use mocked environment variables and external services:
-- AWS services are mocked using moto
-- External API calls (OpenWeather, Anthropic) are mocked
-- Environment variables are set via test fixtures
 
 ## Monitoring
 
