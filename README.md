@@ -95,7 +95,6 @@ When a birthday occurs:
 
 ## Development
 
-For local testing:
 ```bash
 # Run locally
 sam local invoke FelixPearlBotFunction
@@ -120,50 +119,10 @@ tests/
 
 ### Running Tests
 
-1. **Setup Test Environment**
-   ```bash
-   # Install test dependencies
-   pip install -r requirements.txt
-   ```
-
-2. **Run All Tests**
-   ```bash
-   # Run all tests with coverage report
-   pytest --cov=. tests/
-   
-   # Run specific test file
-   pytest tests/unit/test_app.py
-   
-   # Run tests with verbose output
-   pytest -v tests/
-   ```
-
-3. **Test Coverage**
-   ```bash
-   # Generate coverage report
-   pytest --cov=. --cov-report=html tests/
-   # View the report in htmlcov/index.html
-   ```
-
-### Test Environment
-
-The tests use a separate `.env.test` file for configuration. This file is automatically loaded during testing and contains mock values for:
-- API keys
-- Discord webhook URLs
-- AWS credentials
-- DynamoDB table names
-- Other configuration values
-
-### Test Fixtures
-
-The project includes several pytest fixtures in `conftest.py`:
-- `aws_credentials`: Mocked AWS credentials
-- `app_env`: Application environment variables
-- `mock_claude`: Mocked Anthropic Claude API
-- `mock_requests`: Mocked HTTP requests
-- `mock_send_discord`: Mocked Discord message sending
-- `dynamodb_table`: Mocked DynamoDB table
-- And more...
+```bash
+# Run locally
+sam local invoke FelixPearlBotFunction --env-vars env.json --event events/test-event.json
+```
 
 ## Monitoring
 
