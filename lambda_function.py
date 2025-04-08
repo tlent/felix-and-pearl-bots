@@ -11,8 +11,9 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-# Import birthday configuration
+# Import configurations
 from birthday_config import BIRTHDAYS
+from bot_config import BOT_NAMES, BOT_BIRTHDAYS, FELIX, PEARL
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -82,15 +83,11 @@ def generate_felix_birthday_message(birthday_info: Dict) -> str:
         birthday_info: Dictionary containing birthday information
     """
     name = birthday_info['name']
-    is_own_birthday = birthday_info['is_own_birthday']
-    
-    # Felix's character details
-    character_full_name = "Sir Felix Whiskersworth"
-    character_description = "a distinguished feline who loves to share interesting facts"
+    is_own_birthday = name == FELIX["name"]
     
     # Create the prompt for Claude
     if is_own_birthday:
-        prompt = f"""You are {character_full_name}, {character_description}.
+        prompt = f"""You are {FELIX["full_name"]}, {FELIX["description"]}.
 Today is your own birthday!
 
 Please write a fun, engaging self-birthday message. Include:
@@ -101,7 +98,7 @@ Please write a fun, engaging self-birthday message. Include:
 
 Keep the tone light and playful, and make it sound like it's coming from a cat celebrating their own birthday. The message should be suitable for Discord."""
     else:
-        prompt = f"""You are {character_full_name}, {character_description}.
+        prompt = f"""You are {FELIX["full_name"]}, {FELIX["description"]}.
 Today is {name}'s birthday!
 
 Please write a fun, engaging birthday message for {name}. Include:
@@ -117,7 +114,7 @@ Keep the tone light and playful, and make it sound like it's coming from a cat. 
         model="claude-3-5-haiku-latest",
         max_tokens=1000,
         temperature=0.7,
-        system=f"You are {character_full_name}, {character_description}.",
+        system=f"You are {FELIX['full_name']}, {FELIX['description']}.",
         messages=[
             {"role": "user", "content": prompt}
         ]
@@ -132,15 +129,11 @@ def generate_pearl_birthday_message(birthday_info: Dict) -> str:
         birthday_info: Dictionary containing birthday information
     """
     name = birthday_info['name']
-    is_own_birthday = birthday_info['is_own_birthday']
-    
-    # Pearl's character details
-    character_full_name = "Lady Pearl Weatherpaws"
-    character_description = "a sophisticated cat who loves weather and is witty and playful"
+    is_own_birthday = name == PEARL["name"]
     
     # Create the prompt for Claude
     if is_own_birthday:
-        prompt = f"""You are {character_full_name}, {character_description}.
+        prompt = f"""You are {PEARL["full_name"]}, {PEARL["description"]}.
 Today is your own birthday!
 
 Please write a fun, engaging self-birthday message. Include:
@@ -151,7 +144,7 @@ Please write a fun, engaging self-birthday message. Include:
 
 Keep the tone light and playful, and make it sound like it's coming from a cat celebrating their own birthday. The message should be suitable for Discord."""
     else:
-        prompt = f"""You are {character_full_name}, {character_description}.
+        prompt = f"""You are {PEARL["full_name"]}, {PEARL["description"]}.
 Today is {name}'s birthday!
 
 Please write a fun, engaging birthday message for {name}. Include:
@@ -167,7 +160,7 @@ Keep the tone light and playful, and make it sound like it's coming from a cat. 
         model="claude-3-5-haiku-latest",
         max_tokens=1000,
         temperature=0.7,
-        system=f"You are {character_full_name}, {character_description}.",
+        system=f"You are {PEARL['full_name']}, {PEARL['description']}.",
         messages=[
             {"role": "user", "content": prompt}
         ]
@@ -547,8 +540,8 @@ def lambda_handler(event, context):
                 if not send_discord_message(pearl_message, PEARL_WEBHOOK_URL, test_mode):
                     logger.error("Failed to send Pearl's birthday message")
                 
-                # If it's their own birthday, send thank you messages
-                if birthday['is_own_birthday']:
+                # If it's one of the bots' birthdays, send thank you messages
+                if birthday['name'] in BOT_NAMES:
                     thank_you_message = generate_felix_thank_you_message(birthday)
                     if not send_discord_message(thank_you_message, FELIX_WEBHOOK_URL, test_mode):
                         logger.error("Failed to send Felix's thank you message")

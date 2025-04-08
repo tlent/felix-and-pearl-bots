@@ -16,7 +16,7 @@ def load_birthdays() -> Dict:
         return {}
 
 # Birthday configuration loaded from environment variable
-# Format: {"MM-DD": {"name": "display_name", "is_own_birthday": boolean}}
+# Format: {"MM-DD": {"name": "display_name"}}
 BIRTHDAYS = load_birthdays()
 
 # Message types for birthday messages
