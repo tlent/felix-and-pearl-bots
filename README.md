@@ -68,8 +68,6 @@ felix-and-pearl-bots/
 ### Configuration Files
 
 The project uses several configuration files:
-- `birthday_config.py`: Contains birthday configuration (no personal information)
-- `bot_config.py`: Contains general bot configuration and settings
 - `.env.example`: Template for environment variables (copy to `.env` for local development)
 - `env.json`: Local development environment variables for SAM CLI
 
