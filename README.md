@@ -69,6 +69,8 @@ The bot uses the following environment variables (configure in AWS Systems Manag
 - `PEARL_DISCORD_WEBHOOK_URL`: Discord webhook URL for Pearl's messages
 - `WEATHER_API_KEY`: OpenWeather API key (for Pearl's weather service)
 - `WEATHER_LOCATION`: Location for weather updates (optional)
+- `WEATHER_LAT`: Latitude for weather updates (required for OpenWeather One Call API 3.0)
+- `WEATHER_LON`: Longitude for weather updates (required for OpenWeather One Call API 3.0)
 - `BIRTHDAYS_CONFIG`: JSON string containing birthday configuration
 - `TEST_MODE`: When set to 'true', prevents actual Discord messages from being sent (useful for testing)
 

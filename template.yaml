@@ -27,6 +27,8 @@ Resources:
           PEARL_DISCORD_WEBHOOK_URL: !Sub '{{resolve:ssm:/felix-pearl-bot/PEARL_DISCORD_WEBHOOK_URL}}'
           WEATHER_API_KEY: !Sub '{{resolve:ssm:/felix-pearl-bot/WEATHER_API_KEY}}'
           WEATHER_LOCATION: !Sub '{{resolve:ssm:/felix-pearl-bot/WEATHER_LOCATION}}'
+          WEATHER_LAT: !Sub '{{resolve:ssm:/felix-pearl-bot/WEATHER_LAT}}'
+          WEATHER_LON: !Sub '{{resolve:ssm:/felix-pearl-bot/WEATHER_LON}}'
           BIRTHDAYS_CONFIG: !Sub '{{resolve:ssm:/felix-pearl-bot/BIRTHDAYS_CONFIG}}'
       Policies:
         - AWSLambdaBasicExecutionRole

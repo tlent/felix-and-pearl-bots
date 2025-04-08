@@ -35,6 +35,8 @@ class EnvConfig:
         self.felix_webhook_url = self._get_required('FELIX_DISCORD_WEBHOOK_URL')
         self.pearl_webhook_url = self._get_required('PEARL_DISCORD_WEBHOOK_URL')
         self.weather_api_key = self._get_required('WEATHER_API_KEY')
+        self.weather_lat = self._get_required('WEATHER_LAT')
+        self.weather_lon = self._get_required('WEATHER_LON')
 
         # Optional variables with defaults
         self.weather_location = os.environ.get('WEATHER_LOCATION', 'unknown')
@@ -63,7 +65,7 @@ class EnvConfig:
     @property
     def weather_api_url(self) -> str:
         """Get the weather API URL."""
-        return f"https://api.openweathermap.org/data/2.5/weather?q={self.weather_location}&appid={self.weather_api_key}&units=imperial"
+        return f"https://api.openweathermap.org/data/3.0/onecall?lat={self.weather_lat}&lon={self.weather_lon}&appid={self.weather_api_key}&units=imperial&exclude=minutely,hourly,daily,alerts"
 
     def override_for_testing(self, overrides: Dict[str, str]):
         """Override configuration for testing."""

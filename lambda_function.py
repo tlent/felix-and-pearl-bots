@@ -40,8 +40,7 @@ PEARL_WEBHOOK_URL = env.pearl_webhook_url
 
 # Weather API configuration for Pearl's service
 WEATHER_API_KEY = env.weather_api_key
-WEATHER_LOCATION = env.weather_location
-WEATHER_API_URL = f"https://api.openweathermap.org/data/2.5/weather?q={WEATHER_LOCATION}&appid={WEATHER_API_KEY}&units=imperial"
+WEATHER_API_URL = f"https://api.openweathermap.org/data/3.0/onecall?lat={env.weather_lat}&lon={env.weather_lon}&appid={WEATHER_API_KEY}&units=imperial&exclude=minutely,hourly,daily,alerts"
 
 class NationalDay:
     """Represents a national day with its name, URL, and optional occurrence text."""
@@ -321,16 +320,16 @@ def get_weather() -> Optional[Dict]:
         
         # Convert sunrise and sunset times to Eastern timezone
         eastern = pytz.timezone('America/New_York')
-        sunrise_time = datetime.fromtimestamp(weather_data['sys']['sunrise'], tz=pytz.UTC).astimezone(eastern)
-        sunset_time = datetime.fromtimestamp(weather_data['sys']['sunset'], tz=pytz.UTC).astimezone(eastern)
+        sunrise_time = datetime.fromtimestamp(weather_data['current']['sunrise'], tz=pytz.UTC).astimezone(eastern)
+        sunset_time = datetime.fromtimestamp(weather_data['current']['sunset'], tz=pytz.UTC).astimezone(eastern)
         
         # Extract relevant weather information
         weather = {
-            'temperature': round(weather_data['main']['temp']),
-            'feels_like': round(weather_data['main']['feels_like']),
-            'description': weather_data['weather'][0]['description'],
-            'humidity': weather_data['main']['humidity'],
-            'wind_speed': round(weather_data['wind']['speed']),
+            'temperature': round(weather_data['current']['temp']),
+            'feels_like': round(weather_data['current']['feels_like']),
+            'description': weather_data['current']['weather'][0]['description'],
+            'humidity': weather_data['current']['humidity'],
+            'wind_speed': round(weather_data['current']['wind_speed']),
             'sunrise': sunrise_time.strftime('%I:%M %p'),
             'sunset': sunset_time.strftime('%I:%M %p')
         }
