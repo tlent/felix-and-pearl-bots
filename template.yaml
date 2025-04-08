@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: Felix & Pearl Bot - A Discord bot duo that posts daily messages about national days and weather updates
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 128
+    Architectures:
+      - arm64
+    LoggingConfig:
+      LogFormat: JSON
+      LogLevel: DEBUG
+
+Resources:
+  FelixPearlBotFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Environment:
+        Variables:
+          ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/felix-pearl-bot/ANTHROPIC_API_KEY}}'
+          FELIX_DISCORD_WEBHOOK_URL: !Sub '{{resolve:ssm:/felix-pearl-bot/FELIX_DISCORD_WEBHOOK_URL}}'
+          PEARL_DISCORD_WEBHOOK_URL: !Sub '{{resolve:ssm:/felix-pearl-bot/PEARL_DISCORD_WEBHOOK_URL}}'
+          WEATHER_API_KEY: !Sub '{{resolve:ssm:/felix-pearl-bot/WEATHER_API_KEY}}'
+          WEATHER_LOCATION: !Sub '{{resolve:ssm:/felix-pearl-bot/WEATHER_LOCATION}}'
+          BIRTHDAYS_CONFIG: !Sub '{{resolve:ssm:/felix-pearl-bot/BIRTHDAYS_CONFIG}}'
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - SSMParameterReadPolicy:
+            ParameterName: /felix-pearl-bot/*
+      Events:
+        DailyScheduleEDT:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 11 * 3-11 ? *)
+            Description: "Trigger Felix & Pearl Bot at 11 AM EDT"
+        DailyScheduleEST:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 12 * 1-2,12 ? *)
+            Description: "Trigger Felix & Pearl Bot at 12 PM EST"
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 7 * * ? *)
+            Description: "Trigger Felix & Pearl Bot at 7 AM Eastern Time"
+            Enabled: true
+      Tags:
+        Project: FelixPearlBot
+        Environment: Production
+        Services: "NationalDays,Weather,Birthdays"
+
+Parameters:
+  AnthropicApiKey:
+    Type: String
+    Description: API key for Anthropic's Claude API (used by both Felix and Pearl)
+  DiscordWebhookUrl:
+    Type: String
+    Description: Discord webhook URL for posting messages from both Felix and Pearl
+  WeatherApiKey:
+    Type: String
+    Description: API key for OpenWeather API (used by Pearl's weather service)
+  WeatherLocation:
+    Type: String
+    Description: Location for weather updates (e.g., "City,State,Country")
+  FelixWebhookUrl:
+    Type: String
+    Description: Discord webhook URL for Felix's messages
+    NoEcho: true
+  PearlWebhookUrl:
+    Type: String
+    Description: Discord webhook URL for Pearl's messages
+    NoEcho: true
+  BirthdayData:
+    Type: String
+    Description: JSON string containing birthday data
+    NoEcho: true
+  TestMode:
+    Type: String
+    Description: Enable test mode (true/false)
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+Outputs:
+  FelixPearlBotFunction:
+    Description: Felix & Pearl Bot Lambda Function ARN
+    Value: !GetAtt FelixPearlBotFunction.Arn 

@@ -1,111 +1,178 @@
-# Felix Bot
+# Felix & Pearl Bot
 
-A Discord bot that posts daily messages about national days and special occasions, written from the perspective of Sir Felix Whiskersworth, a distinguished feline.
+A Discord bot duo that posts daily messages about national days and weather updates, written from the perspective of two distinguished felines: Sir Felix Whiskersworth and Lady Pearl Weatherpaws.
 
 ## Overview
 
-Felix Bot fetches data from a SQLite database of national days and birthdays, then uses Claude AI to craft creative messages that weave these events into a cohesive narrative. The result is a daily dose of feline wisdom and humor for your Discord server.
+The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time. It provides three services:
 
-## Features
+- **Felix's National Days Service**: Fetches and shares daily national days and observances
+- **Pearl's Weather Service**: Provides daily weather updates
+- **Birthday Service**: Sends birthday messages on special occasions
 
-- Daily messages about national days and observances
-- Birthday celebrations for special occasions
-- AI-generated content using Claude
-- Rich content with links to learn more about each national day
-- Test mode for verifying functionality without sending messages
-- Automated deployment to Raspberry Pi with scheduled daily execution
+### Key Features
 
-## Setup
-
-1. **Environment Variables**
-
-```
-ANTHROPIC_API_KEY=your_anthropic_api_key
-DISCORD_TOKEN=your_discord_bot_token
-```
-
-2. **Build and Run**
-
-```bash
-# Build
-cargo build --release
-
-# Run normally
-cargo run --release
-
-# Run in test mode
-cargo run --release -- --test-mode
-```
-
-## Configuration
-
-Key settings in `src/config.rs`:
-
-| Setting | Default |
-|---------|---------|
-| Database path | `days.db` |
-| Discord channel ID | `1218191951237742612` |
-| Claude model | `claude-3-5-haiku-latest` |
-
-## Database Schema
-
-- **NationalDay**: `name`, `url`, `occurrence_2025` (YYYY-MM-DD)
-- **Birthday**: `date` (YYYY-MM-DD), `description`
+- 🐱 Daily messages about national days and observances (Felix)
+- 🌤️ Daily weather updates with cat-themed observations (Pearl)
+- 🎂 Birthday messages for special occasions (both Felix and Pearl)
+- 🤖 AI-generated content using Claude (used by both Felix and Pearl)
+- ☁️ Serverless architecture using AWS Lambda
+- ⏰ Automated daily execution at 7 AM Eastern Time (adjusts for EDT/EST)
 
 ## Project Structure
 
 ```
-felix-bot/
-├── src/
-│   ├── main.rs         # Application entry point
-│   ├── lib.rs          # Library exports
-│   ├── models.rs       # Data structures
-│   ├── database.rs     # Database operations
-│   ├── ai.rs           # Claude AI integration
-│   ├── discord.rs      # Discord API integration
-│   └── config.rs       # Configuration constants
-├── days.db             # SQLite database
-├── .github/workflows/  # CI/CD configuration
-└── README.md           # This file
+felix-pearl-bot/
+├── lambda_function.py    # Main Lambda function handling all services
+├── app.py                # Message handling
+├── birthday_config.py    # Birthday configuration (no personal information)
+├── requirements.txt      # Python dependencies
+├── template.yaml         # AWS SAM template
+├── tests/               # Test directory
+│   ├── test_lambda_function.py
+│   └── test_app.py
+└── README.md            # This file
 ```
 
-## Deployment
+## Setup
 
-Felix Bot is automatically deployed to a Raspberry Pi 3 (arm64) using GitHub Actions. The deployment process includes:
+### Quick Start
 
-1. Cross-compilation for ARM64 architecture
-2. Building and pushing a Docker image to GitHub Container Registry
-3. Deploying the image to the Raspberry Pi via SSH
-4. Setting up a cron job to run the bot daily at 7:00 AM
+1. Clone the repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Deploy: `sam build && sam deploy --guided`
+4. Configure environment variables in AWS Systems Manager
 
-### CI/CD Pipeline
+### Prerequisites
 
-The GitHub Actions workflow handles:
+- AWS CLI installed and configured
+- AWS SAM CLI installed
+- Python 3.12
+- Anthropic API key (used by both bots)
+- Discord webhook URL (used by both bots)
+- OpenWeather API key (used by Pearl's weather service)
 
-- Caching Rust dependencies for faster builds using Swatinem/rust-cache
-- Building a Docker image for ARM64 architecture
-- Testing the image before deployment
-- Setting up or updating the cron job
-- Automatic rollback in case of deployment failure
+### Deployment
 
-### Scheduled Execution
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-The bot is configured to run once daily at 7:00 AM using cron on the Raspberry Pi. This ensures:
+# Deploy using SAM
+sam build
+sam deploy --guided
+```
 
-- Regular daily updates without manual intervention
-- Efficient resource usage by running only when needed
-- Consistent timing for Discord server members
+During the guided deployment, you'll need to provide:
+- Anthropic API key (for both bots' message generation)
+- Discord webhook URL (for both bots' messages)
+- OpenWeather API key (for Pearl's weather service)
+- Weather location
 
-### Monitoring
+## Configuration
 
-Logs are stored in `~/felix-bot/felix-bot.log` on the Raspberry Pi for monitoring and troubleshooting.
+The bot uses the following environment variables:
+- `ANTHROPIC_API_KEY`: Your Anthropic API key (used by both bots)
+- `FELIX_DISCORD_WEBHOOK_URL`: Discord webhook URL for Felix's messages
+- `PEARL_DISCORD_WEBHOOK_URL`: Discord webhook URL for Pearl's messages
+- `WEATHER_API_KEY`: OpenWeather API key (for Pearl's weather service)
+- `WEATHER_LOCATION`: Location for weather updates (optional)
+- `BIRTHDAYS_CONFIG`: JSON string containing birthday configuration
+
+## Birthday Configuration
+
+Birthdays are configured in `birthday_config.py` without exposing personal information. The format is:
+```python
+BIRTHDAYS = {
+    "MM-DD": {"name": "display_name", "is_own_birthday": boolean},
+    # Example: "04-16": {"name": "Felix", "is_own_birthday": true}
+}
+```
+
+When a birthday occurs:
+1. Both Felix and Pearl send birthday messages
+2. If it's a cat's own birthday, they also send a thank you message after receiving wishes from their sibling and family
 
 ## Development
 
-For local development:
+For local testing:
+```bash
+# Run locally
+sam local invoke FelixPearlBotFunction
+```
 
-1. Clone the repository
-2. Set up the required environment variables
-3. Run in test mode to verify functionality without sending Discord messages
+## Testing
 
-Changes pushed to the main branch will automatically trigger the deployment pipeline. 
+The project includes a comprehensive test suite with both unit and integration tests. The tests use pytest and include mocked AWS services using moto.
+
+### Test Structure
+```
+tests/
+├── unit/                  # Unit tests
+│   ├── test_app.py       # Tests for app.py
+│   ├── test_env_config.py
+│   ├── test_message_generation.py
+│   └── test_birthday_config.py
+├── integration/          # Integration tests
+├── conftest.py          # Shared test fixtures
+└── .env.test            # Test environment variables
+```
+
+### Running Tests
+
+1. **Setup Test Environment**
+   ```bash
+   # Install test dependencies
+   pip install -r requirements.txt
+   ```
+
+2. **Run All Tests**
+   ```bash
+   # Run all tests with coverage report
+   pytest --cov=. tests/
+   
+   # Run specific test file
+   pytest tests/unit/test_app.py
+   
+   # Run tests with verbose output
+   pytest -v tests/
+   ```
+
+3. **Test Coverage**
+   ```bash
+   # Generate coverage report
+   pytest --cov=. --cov-report=html tests/
+   # View the report in htmlcov/index.html
+   ```
+
+### Test Environment
+
+The tests use a separate `.env.test` file for configuration. This file is automatically loaded during testing and contains mock values for:
+- API keys
+- Discord webhook URLs
+- AWS credentials
+- DynamoDB table names
+- Other configuration values
+
+### Test Fixtures
+
+The project includes several pytest fixtures in `conftest.py`:
+- `aws_credentials`: Mocked AWS credentials
+- `app_env`: Application environment variables
+- `mock_claude`: Mocked Anthropic Claude API
+- `mock_requests`: Mocked HTTP requests
+- `mock_send_discord`: Mocked Discord message sending
+- `dynamodb_table`: Mocked DynamoDB table
+- And more...
+
+## Monitoring
+
+Logs can be viewed in CloudWatch Logs under the following log group:
+- `/aws/lambda/FelixPearlBotFunction` - Main bot function
+
+You can monitor the system through:
+1. CloudWatch Logs for detailed execution logs and errors
+2. CloudWatch Metrics for Lambda function invocations and errors
+3. CloudWatch Alarms can be set up for:
+   - High failure rates
+   - Lambda function errors 
