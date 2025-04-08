@@ -90,7 +90,7 @@ When a birthday occurs:
 
 ```bash
 # Run locally
-sam local invoke FelixPearlBotFunction
+sam local invoke FelixPearlBotFunction --env-vars env.json --event events/test-event.json
 ```
 
 ## Monitoring
