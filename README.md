@@ -120,7 +120,31 @@ tests/
 ### Running Tests
 
 ```bash
-# Run locally
+# Run all tests
+python -m pytest tests/
+
+# Run only unit tests
+python -m pytest tests/unit/
+
+# Run only integration tests
+python -m pytest tests/integration/
+
+# Run with coverage report
+python -m pytest --cov=. tests/
+```
+
+### Test Environment
+
+The tests use a separate test environment file (`tests/.env.test`) and mock external services:
+- AWS services are mocked using moto
+- External API calls (OpenWeather, Anthropic) are mocked
+- Discord webhook calls are intercepted and verified
+- DateTime operations use a fixed test date
+
+### Local Testing
+
+For testing the Lambda function locally with test mode:
+```bash
 sam local invoke FelixPearlBotFunction --env-vars env.json --event events/test-event.json
 ```
 

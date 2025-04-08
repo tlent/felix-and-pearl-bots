@@ -371,6 +371,11 @@ def get_weather() -> Optional[Dict]:
         response.raise_for_status()
         weather_data = response.json()
         
+        # Convert sunrise and sunset times to Eastern timezone
+        eastern = pytz.timezone('America/New_York')
+        sunrise_time = datetime.fromtimestamp(weather_data['sys']['sunrise'], tz=pytz.UTC).astimezone(eastern)
+        sunset_time = datetime.fromtimestamp(weather_data['sys']['sunset'], tz=pytz.UTC).astimezone(eastern)
+        
         # Extract relevant weather information
         weather = {
             'temperature': round(weather_data['main']['temp']),
@@ -378,8 +383,8 @@ def get_weather() -> Optional[Dict]:
             'description': weather_data['weather'][0]['description'],
             'humidity': weather_data['main']['humidity'],
             'wind_speed': round(weather_data['wind']['speed']),
-            'sunrise': datetime.fromtimestamp(weather_data['sys']['sunrise']).strftime('%I:%M %p'),
-            'sunset': datetime.fromtimestamp(weather_data['sys']['sunset']).strftime('%I:%M %p')
+            'sunrise': sunrise_time.strftime('%I:%M %p'),
+            'sunset': sunset_time.strftime('%I:%M %p')
         }
         
         logger.info("Weather Data:")
