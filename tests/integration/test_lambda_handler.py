@@ -20,8 +20,9 @@ def mock_env():
         'WEATHER_API_KEY': 'test_weather_key',
         'WEATHER_LOCATION': 'Test City,TS,US',
         'BIRTHDAYS_CONFIG': json.dumps({
-            "04-16": {"name": "Test Person", "is_own_birthday": False}
-        })
+            "04-16": {"name": "Test Person"}
+        }),
+        'TEST_MODE': 'true'
     }
     with patch.dict(os.environ, test_env):
         yield test_env

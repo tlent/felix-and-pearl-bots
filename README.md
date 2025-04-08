@@ -113,8 +113,8 @@ tests/
 │   ├── test_message_generation.py
 │   └── test_birthday_config.py
 ├── integration/          # Integration tests
-├── conftest.py          # Shared test fixtures
-└── .env.test            # Test environment variables
+│   └── test_lambda_handler.py  # Tests for lambda_handler
+└── conftest.py          # Shared test fixtures
 ```
 
 ### Running Tests
@@ -135,18 +135,10 @@ python -m pytest --cov=. tests/
 
 ### Test Environment
 
-The tests use a separate test environment file (`tests/.env.test`) and mock external services:
+The tests use mocked environment variables and external services:
 - AWS services are mocked using moto
 - External API calls (OpenWeather, Anthropic) are mocked
-- Discord webhook calls are intercepted and verified
-- DateTime operations use a fixed test date
-
-### Local Testing
-
-For testing the Lambda function locally with test mode:
-```bash
-sam local invoke FelixPearlBotFunction --env-vars env.json --event events/test-event.json
-```
+- Environment variables are set via test fixtures
 
 ## Monitoring
 

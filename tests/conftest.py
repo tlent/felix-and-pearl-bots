@@ -2,11 +2,7 @@ import os
 import json
 import pytest
 from unittest.mock import patch, MagicMock
-from dotenv import load_dotenv
 from datetime import datetime, UTC
-
-# Load test environment variables
-load_dotenv('tests/.env.test')
 
 @pytest.fixture(scope="session", autouse=True)
 def aws_credentials():
