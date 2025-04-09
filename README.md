@@ -27,9 +27,8 @@ felix-and-pearl-bots/
 ├── app.py               # Message handling and Discord integration
 ├── birthday_config.py   # Birthday configuration
 ├── bot_config.py       # General bot configuration
-├── requirements.txt    # Python dependencies
+├── pyproject.toml      # Project configuration and dependencies
 ├── template.yaml       # AWS SAM template
-├── setup.py           # Package setup configuration
 ├── .env.example       # Example environment variables template
 ├── env.json           # Local development environment variables
 ├── events/            # Test event files
@@ -41,7 +40,7 @@ felix-and-pearl-bots/
 ### Quick Start
 
 1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
+2. Install dependencies: `pip install .`
 3. Copy `.env.example` to `.env` and fill in your values
 4. Deploy: `sam build && sam deploy --guided`
 5. Configure environment variables in AWS Systems Manager
@@ -50,7 +49,7 @@ felix-and-pearl-bots/
 
 - AWS CLI installed and configured
 - AWS SAM CLI installed
-- Python 3.12
+- Python 3.7 or higher
 - Anthropic API key (used by both bots)
 - Discord webhook URL (used by both bots)
 - OpenWeather API key (used by Pearl's weather service)
@@ -58,6 +57,7 @@ felix-and-pearl-bots/
 ### Configuration Files
 
 The project uses several configuration files:
+- `pyproject.toml`: Project configuration and dependencies
 - `.env.example`: Template for environment variables (copy to `.env` for local development)
 - `env.json`: Local development environment variables for SAM CLI
 
@@ -91,6 +91,9 @@ When a birthday occurs:
 ## Development
 
 ```bash
+# Install in development mode
+pip install -e .
+
 # Run locally
 sam local invoke FelixPearlBotFunction --env-vars env.json --event events/test-event.json
 ```
