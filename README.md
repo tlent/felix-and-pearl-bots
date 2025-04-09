@@ -23,10 +23,12 @@ The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time.
 
 ```
 felix-and-pearl-bots/
-├── lambda_function.py    # Main Lambda function handling all services
-├── app.py               # Message handling and Discord integration
-├── birthday_config.py   # Birthday configuration
-├── bot_config.py       # General bot configuration
+├── src/                  # Source code directory
+│   ├── lambda_function.py    # Main Lambda function handling all services
+│   ├── app.py               # Message handling and Discord integration
+│   ├── birthday_config.py   # Birthday configuration
+│   ├── bot_config.py       # General bot configuration
+│   └── prompts.py          # Bot prompts and templates
 ├── pyproject.toml      # Project configuration and dependencies
 ├── template.yaml       # AWS SAM template
 ├── .env.example       # Example environment variables template
