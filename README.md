@@ -17,7 +17,7 @@ The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time.
 - 🎂 Birthday messages for special occasions (both Felix and Pearl)
 - 🤖 AI-generated content using Claude (used by both Felix and Pearl)
 - ☁️ Serverless architecture using AWS Lambda
-- ⏰ Automated daily execution at 7 AM Eastern Time (adjusts for EDT/EST)
+- ⏰ Automated daily execution at 7/8 AM Eastern Time (adjusts for daylight saving time)
 
 ## Project Structure
 
