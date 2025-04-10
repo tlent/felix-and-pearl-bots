@@ -11,10 +11,10 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 # Import configurations
-from birthday_config import BIRTHDAYS
-from bot_config import BOT_NAMES, FELIX, PEARL
-from env_config import env
-from prompts import (
+from src.birthday_config import BIRTHDAYS
+from src.bot_config import BOT_NAMES, FELIX, PEARL
+from src.env_config import env
+from src.prompts import (
     OWN_BIRTHDAY_PROMPT,
     OTHER_BIRTHDAY_PROMPT,
     THANK_YOU_PROMPT,
