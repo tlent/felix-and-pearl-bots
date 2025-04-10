@@ -74,13 +74,13 @@ Resources:
         DSTCheckSchedule:
           Type: Schedule
           Properties:
-            Schedule: cron(0 0 8-14 3 ? SUN *)  # Run at midnight on the second Sunday in March
+            Schedule: cron(0 0 8-14 3 ? *)  # Run at midnight on the second Sunday in March
             Description: dst-spring-forward-check
             Enabled: true
         DSTCheckScheduleFallback:
           Type: Schedule
           Properties:
-            Schedule: cron(0 0 1-7 11 ? SUN *)  # Run at midnight on the first Sunday in November
+            Schedule: cron(0 0 1-7 11 ? *)  # Run at midnight on the first Sunday in November
             Description: dst-fall-back-check
             Enabled: true
 
