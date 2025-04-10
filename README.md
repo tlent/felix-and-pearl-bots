@@ -17,7 +17,7 @@ The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time.
 - 🎂 Birthday messages for special occasions (both Felix and Pearl)
 - 🤖 AI-generated content using Claude (used by both Felix and Pearl)
 - ☁️ Serverless architecture using AWS Lambda
-- ⏰ Automated daily execution at 7/8 AM Eastern Time (adjusts for daylight saving time)
+- ⏰ Automated daily execution at 7 AM Eastern Time with automatic DST handling
 
 ## Project Structure
 
@@ -28,6 +28,7 @@ felix-and-pearl-bots/
 │   ├── app.py               # Message handling and Discord integration
 │   ├── birthday_config.py   # Birthday configuration
 │   ├── bot_config.py       # General bot configuration
+│   ├── dst_switch.py       # DST transition handling
 │   └── prompts.py          # Bot prompts and templates
 ├── pyproject.toml      # Project configuration and dependencies
 ├── template.yaml       # AWS SAM template
@@ -111,3 +112,23 @@ You can monitor the system through:
 3. CloudWatch Alarms can be set up for:
    - High failure rates
    - Lambda function errors 
+
+### Scheduling and DST Handling
+
+The bot uses a sophisticated scheduling system to ensure consistent 7 AM Eastern Time execution:
+
+1. **Daily Schedule**:
+   - EDT Schedule: Runs at 7 AM EDT (11:00 UTC)
+   - EST Schedule: Runs at 7 AM EST (12:00 UTC)
+
+2. **DST Transition Handling**:
+   - Automatic switching between EDT and EST schedules
+   - DST switch function runs at midnight on transition days:
+     - Second Sunday in March (spring forward)
+     - First Sunday in November (fall back)
+   - Only one schedule is active at a time to prevent duplicate executions
+
+3. **Schedule Management**:
+   - The DST switch function automatically enables/disables the appropriate schedule
+   - Uses EventBridge rules for reliable scheduling
+   - Maintains consistent 7 AM local time execution year-round 
