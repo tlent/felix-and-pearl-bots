@@ -45,7 +45,7 @@ Resources:
           Properties:
             Schedule: cron(0 12 * * ? *)  # 7 AM EST
             Description: daily-trigger-est
-            Enabled: true
+            Enabled: false
 
   DSTSwitchFunction:
     Type: AWS::Serverless::Function
