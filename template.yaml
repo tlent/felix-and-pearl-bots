@@ -34,11 +34,54 @@ Resources:
         service: discord-bot
         created-by: sam
       Events:
-        DailySchedule:
+        DailyScheduleEDT:
           Type: Schedule
           Properties:
-            Schedule: cron(0 12 * * ? *)  # 7/8 AM ET depending on DST
-            Description: daily-trigger
+            Schedule: cron(0 11 * * ? *)  # 7 AM EDT
+            Description: daily-trigger-edt
+            Enabled: true
+        DailyScheduleEST:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 12 * * ? *)  # 7 AM EST
+            Description: daily-trigger-est
+            Enabled: true
+
+  DSTSwitchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src.dst_switch.lambda_handler
+      Runtime: python3.12
+      Timeout: 30
+      MemorySize: 128
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          TZ: "America/New_York"
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - events:PutRule
+                - events:PutTargets
+                - events:DeleteRule
+                - events:RemoveTargets
+              Resource: '*'
+      Events:
+        DSTCheckSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 0 8-14 3 ? SUN *)  # Run at midnight on the second Sunday in March
+            Description: dst-spring-forward-check
+            Enabled: true
+        DSTCheckScheduleFallback:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 0 1-7 11 ? SUN *)  # Run at midnight on the first Sunday in November
+            Description: dst-fall-back-check
             Enabled: true
 
 Parameters:
@@ -75,4 +118,7 @@ Parameters:
 Outputs:
   FelixPearlBotFunction:
     Description: felix-pearl-bot-lambda-arn
-    Value: !GetAtt FelixPearlBotFunction.Arn 
+    Value: !GetAtt FelixPearlBotFunction.Arn
+  DSTSwitchFunction:
+    Description: dst-switch-function-arn
+    Value: !GetAtt DSTSwitchFunction.Arn 
