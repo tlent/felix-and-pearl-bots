@@ -47,3 +47,12 @@ birthdays.json
 env.json
 .env*
 !.env.example
+
+# Poetry
+poetry.lock
+__pypackages__/
+.poetry/
+.venv/
+
+# Build artifacts
+deployment.zip
