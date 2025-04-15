@@ -30,6 +30,7 @@ samconfig.toml
 # IDE
 .idea/
 .vscode/
+!.vscode/settings.json
 *.swp
 *.swo
 
