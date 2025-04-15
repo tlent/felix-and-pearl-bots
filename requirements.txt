@@ -1,7 +1,0 @@
-boto3
-anthropic
-requests
-python-dateutil
-python-dotenv
-beautifulsoup4
-pytz 
