@@ -1,67 +1,108 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
-Description: Felix-Pearl-Bot-Discord-Weather-Updates
+Description: FelixPearlBot
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - production
+      - development
+    Description: Environment to deploy to
+
+  DiscordWebhookUrl:
+    Type: String
+    Description: Discord webhook URL for bot messages
+    NoEcho: true
+
+  ClaudeApiKey:
+    Type: String
+    Description: Claude API key for AI message generation
+    NoEcho: true
+
+  OpenWeatherApiKey:
+    Type: String
+    Description: OpenWeather API key for weather data
+    NoEcho: true
+
+  BirthdayChannelId:
+    Type: String
+    Description: Discord channel ID for birthday messages
+    Default: ""
+
+  WeatherChannelId:
+    Type: String
+    Description: Discord channel ID for weather updates
+    Default: ""
+
+  NationalDaysChannelId:
+    Type: String
+    Description: Discord channel ID for national days messages
+    Default: ""
+
+  TestMode:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Enable test mode to suppress messages
 
 Resources:
   FelixPearlBotFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./
-      Handler: src.lambda_function.lambda_handler
-      Runtime: python3.12
+      CodeUri: src/
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
       Timeout: 30
-      MemorySize: 128
-      Architectures:
-        - arm64
+      MemorySize: 256
       Environment:
         Variables:
-          ANTHROPIC_API_KEY: !Ref AnthropicApiKey
-          FELIX_DISCORD_WEBHOOK_URL: !Ref FelixWebhookUrl
-          PEARL_DISCORD_WEBHOOK_URL: !Ref PearlWebhookUrl
-          WEATHER_API_KEY: !Ref WeatherApiKey
-          WEATHER_LOCATION: !Ref WeatherLocation
-          WEATHER_LAT: !Ref WeatherLat
-          WEATHER_LON: !Ref WeatherLon
-          BIRTHDAYS_CONFIG: !Ref BirthdaysConfig
-          TEST_MODE: "false"
-          TZ: "America/New_York"
+          ENVIRONMENT: !Ref Environment
+          DISCORD_WEBHOOK_URL: !Ref DiscordWebhookUrl
+          CLAUDE_API_KEY: !Ref ClaudeApiKey
+          OPENWEATHER_API_KEY: !Ref OpenWeatherApiKey
+          BIRTHDAY_CHANNEL_ID: !Ref BirthdayChannelId
+          WEATHER_CHANNEL_ID: !Ref WeatherChannelId
+          NATIONAL_DAYS_CHANNEL_ID: !Ref NationalDaysChannelId
+          TEST_MODE: !Ref TestMode
       Policies:
         - AWSLambdaBasicExecutionRole
       Tags:
-        project: felix-pearl-bot
-        environment: prod
-        service: discord-bot
-        created-by: sam
+        Project: felix-pearl-bot
+        Environment: !Ref Environment
+        Service: discord-bot
+        CreatedBy: sam
       Events:
         DailyScheduleEDT:
           Type: Schedule
           Properties:
-            Schedule: cron(0 11 * * ? *)  # 7 AM EDT
-            Description: daily-trigger-edt
+            Schedule: cron(0 11 * * ? *) # 7 AM EDT
+            Description: Daily schedule for EDT
             Enabled: true
         DailyScheduleEST:
           Type: Schedule
           Properties:
-            Schedule: cron(0 12 * * ? *)  # 7 AM EST
-            Description: daily-trigger-est
+            Schedule: cron(0 12 * * ? *) # 7 AM EST
+            Description: Daily schedule for EST
             Enabled: false
 
   DSTSwitchFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./
-      Handler: src.dst_switch.lambda_handler
-      Runtime: python3.12
+      CodeUri: src/
+      Handler: services.dst_switch.lambda_handler
+      Runtime: python3.9
       Timeout: 30
       MemorySize: 128
-      Architectures:
-        - arm64
       Environment:
         Variables:
-          TZ: "America/New_York"
+          ENVIRONMENT: !Ref Environment
       Policies:
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
@@ -69,56 +110,19 @@ Resources:
                 - events:PutTargets
                 - events:DeleteRule
                 - events:RemoveTargets
-              Resource: '*'
+              Resource: "*"
       Events:
-        DSTCheckSchedule:
+        DSTCheck:
           Type: Schedule
           Properties:
-            Schedule: cron(0 0 8-14 3 ? *)  # Run at midnight on the second Sunday in March
-            Description: dst-spring-forward-check
+            Schedule: cron(0 12 * * ? *)
+            Description: Daily DST check
             Enabled: true
-        DSTCheckScheduleFallback:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 0 1-7 11 ? *)  # Run at midnight on the first Sunday in November
-            Description: dst-fall-back-check
-            Enabled: true
-
-Parameters:
-  AnthropicApiKey:
-    Type: String
-    Description: anthropic-api-key
-    NoEcho: true
-  FelixWebhookUrl:
-    Type: String
-    Description: felix-discord-webhook
-    NoEcho: true
-  PearlWebhookUrl:
-    Type: String
-    Description: pearl-discord-webhook
-    NoEcho: true
-  WeatherApiKey:
-    Type: String
-    Description: weather-api-key
-    NoEcho: true
-  WeatherLocation:
-    Type: String
-    Description: weather-location
-  WeatherLat:
-    Type: String
-    Description: weather-latitude
-  WeatherLon:
-    Type: String
-    Description: weather-longitude
-  BirthdaysConfig:
-    Type: String
-    Description: birthdays-json-config
-    NoEcho: true
 
 Outputs:
   FelixPearlBotFunction:
-    Description: felix-pearl-bot-lambda-arn
+    Description: Felix & Pearl Bot Lambda Function ARN
     Value: !GetAtt FelixPearlBotFunction.Arn
   DSTSwitchFunction:
-    Description: dst-switch-function-arn
-    Value: !GetAtt DSTSwitchFunction.Arn 
+    Description: DST Switch Lambda Function ARN
+    Value: !GetAtt DSTSwitchFunction.Arn

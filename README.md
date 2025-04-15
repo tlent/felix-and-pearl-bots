@@ -1,49 +1,59 @@
 # Felix & Pearl Bot 🐱🌤️
 
-A sophisticated Discord bot duo that delivers daily messages about national days and weather updates, written from the perspective of two distinguished felines: Sir Felix Whiskersworth and Lady Pearl Weatherpaws. This project showcases advanced serverless architecture, AI integration, and precise timezone handling.
+A Discord bot duo that delivers daily messages about national days and weather updates, written from the perspective of two cats: Sir Felix Whiskersworth and Lady Pearl Weatherpaws. This project uses serverless architecture, AI integration, and handles timezone changes.
 
 ## 🚀 Key Features
 
-The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time. It provides three sophisticated services:
+The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time. It provides three services:
 
-- **Felix's National Days Service**: AI-powered daily messages about national days and observances, with personality-driven commentary
-- **Pearl's Weather Service**: Intelligent weather updates with cat-themed observations and AI-generated insights
-- **Birthday Service**: Personalized birthday messages with unique AI-generated content for each recipient
+- **Felix's National Days Service**: Daily messages about national days and observances, with commentary using Claude AI
+- **Pearl's Weather Service**: Weather updates with cat-themed observations, using OpenWeatherMap API
+- **Birthday Service**: Birthday messages with AI-generated content for each recipient
 
 ### Technical Capabilities
 
-- **Precise Timezone Management**: Sophisticated DST handling ensures consistent 7 AM Eastern Time execution
-- **Serverless Architecture**: Built on AWS Lambda with zero infrastructure maintenance
-- **Scalable Design**: Handles multiple services in a single Lambda function
-- **Production-Ready**: Comprehensive error handling, logging, and monitoring
-- **AI Integration**: Claude AI powers natural language generation for unique, personality-driven content
+- **Timezone Management**: DST handling ensures 7 AM Eastern Time execution
+- **Serverless Architecture**: Built on AWS Lambda with AWS SAM for deployment
+- **AI Integration**: Claude AI for natural language generation
 
 ## 🏗️ Technical Architecture
 
 ### Core Components
 
 - **AWS Lambda**: Serverless execution environment
-- **EventBridge**: Precise scheduling with automatic DST transitions
-- **Systems Manager**: Secure configuration management
-- **CloudWatch**: Comprehensive monitoring and logging
-- **Claude AI**: Natural language generation for bot personalities
+- **EventBridge**: Scheduling with DST transitions
+- **Parameter Store**: Secure storage of API keys and configuration
+- **CloudWatch**: Basic monitoring and logging
+- **Claude AI**: Natural language generation
 
-### Advanced DST Handling
+### DST Handling
 
-The bot implements a sophisticated scheduling system that automatically adjusts for Daylight Saving Time:
+The bot handles Daylight Saving Time through dedicated DST management code:
 
 ```python
-# Automatic DST transition handling
-if current_month == 3 and 8 <= current_day <= 14:  # Second Sunday in March
-    events.put_rule(
-        Name="DailyScheduleEDT",
-        ScheduleExpression="cron(0 11 * * ? *)",  # 7 AM EDT
-        State="ENABLED"
-    )
+def is_dst_change_day() -> bool:
+    """Check if today is a DST change day."""
+    now = get_current_time()
+
+    # Check for spring forward (second Sunday in March)
+    if now.month == 3:
+        first_day = datetime(now.year, 3, 1, tzinfo=ZoneInfo("America/New_York"))
+        days_until_sunday = (6 - first_day.weekday()) % 7
+        second_sunday = first_day + timedelta(days=days_until_sunday + 7)
+        return now.date() == second_sunday.date()
+
+    # Check for fall back (first Sunday in November)
+    if now.month == 11:
+        first_day = datetime(now.year, 11, 1, tzinfo=ZoneInfo("America/New_York"))
+        days_until_sunday = (6 - first_day.weekday()) % 7
+        first_sunday = first_day + timedelta(days=days_until_sunday)
+        return now.date() == first_sunday.date()
+
+    return False
 ```
 
-- **Automatic Transitions**: Seamlessly switches between EDT and EST
-- **Zero Manual Intervention**: Fully automated DST handling
+- **DST Handling**: Uses zoneinfo module for timezone calculations
+- **Automatic Transitions**: Switches between EDT and EST schedules
 - **Consistent Execution**: Maintains 7 AM local time year-round
 
 ## 📁 Project Structure
@@ -51,74 +61,63 @@ if current_month == 3 and 8 <= current_day <= 14:  # Second Sunday in March
 ```text
 felix-and-pearl-bots/
 ├── src/
-│   ├── lambda_function.py    # Main Lambda handler with all services
-│   ├── dst_switch.py        # Sophisticated DST transition handling
-│   ├── env_config.py        # Environment configuration management
-│   ├── prompts.py           # AI prompt engineering
-│   ├── bot_config.py        # Bot personality configurations
-│   ├── birthday_config.py   # Birthday message handling
-│   └── app.py              # Core application setup
+│   ├── lambda_function.py    # Main Lambda handler
+│   ├── services/
+│   │   ├── birthdays.py      # Birthday service
+│   │   ├── national_days.py  # National days service
+│   │   ├── weather.py        # Weather service
+│   │   └── dst_switch.py     # DST transition handling
+│   ├── handlers/
+│   │   ├── discord.py        # Discord message handling
+│   │   └── ai.py             # AI message generation
+│   └── config/
+│       ├── config.py         # Configuration
+│       └── prompts.py        # AI prompts
 ├── scripts/
-│   ├── build_lambda.py     # Lambda package builder
-│   ├── deploy.py           # One-command deployment
-│   └── test.py            # Testing and validation
-├── template.yaml          # AWS SAM infrastructure
-├── pyproject.toml        # Python project configuration
-└── README.md            # Project documentation
+│   ├── build_lambda.py       # Lambda package builder
+│   ├── deploy.py             # Deployment script
+│   └── test.py               # Testing script
+├── template.yaml             # AWS SAM template
+├── pyproject.toml            # Python project config
+└── .env.example              # Environment variable template
 ```
 
 ## 🛠️ Development
 
-### Quick Start
+### Poetry Scripts
 
-1. Clone and setup:
+The project uses Poetry for dependency management and automation. Here are the available scripts:
 
-   ```bash
-   git clone https://github.com/yourusername/felix-and-pearl-bots.git
-   cd felix-and-pearl-bots
-   poetry install
-   ```
+```bash
+# Install dependencies
+poetry install
 
-2. Configure environment:
+# Run tests
+poetry run test
 
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+# Build Lambda package
+poetry run build
 
-3. Deploy:
+# Deploy to AWS
+poetry run deploy
+```
 
-   ```bash
-   poetry run deploy
-   ```
+Each script is configured in `pyproject.toml` and handles specific development tasks. The deploy script requires AWS credentials configured in your environment.
 
 ### Development Tools
 
-- **Poetry**: Modern Python dependency management
+- **Poetry**: Python dependency management
 - **AWS SAM**: Infrastructure as Code
-- **Type Hints**: Full Python type annotation support
-- **Logging**: Comprehensive CloudWatch integration
+- **Logging**: Basic CloudWatch integration
 
 ## 🔒 Security & Configuration
 
-- **Secure Secrets**: Environment variables managed through AWS Systems Manager
-- **API Keys**: Securely stored and never exposed in code
-- **Test Mode**: Safe development environment with message suppression
-
-## 📊 Monitoring
-
-- **CloudWatch Logs**: Detailed execution tracking
-- **Error Handling**: Comprehensive error logging and recovery
-- **Performance Metrics**: Lambda execution monitoring
+- **Secrets Management**: API keys and sensitive data stored in AWS Parameter Store
+- **Test Mode**: Development environment with message suppression
 
 ## 🎯 Technical Highlights
 
-- **Single Lambda Function**: Efficiently handles multiple services
-- **AI Integration**: Claude API for natural language generation
-- **Timezone Precision**: Sophisticated DST handling
-- **Serverless Architecture**: Zero infrastructure maintenance
-- **Production-Ready**: Comprehensive error handling and monitoring
-
-## 📝 License
-
-MIT License - See LICENSE file for details
+- **Modular Design**: Services and handlers separation
+- **AI Integration**: Claude API for message generation
+- **Timezone Handling**: Robust DST management
+- **Serverless**: AWS Lambda deployment with AWS SAM
