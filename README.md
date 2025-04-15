@@ -1,134 +1,124 @@
-# Felix & Pearl Bot
+# Felix & Pearl Bot 🐱🌤️
 
-A Discord bot duo that posts daily messages about national days and weather updates, written from the perspective of two distinguished felines: Sir Felix Whiskersworth and Lady Pearl Weatherpaws.
+A sophisticated Discord bot duo that delivers daily messages about national days and weather updates, written from the perspective of two distinguished felines: Sir Felix Whiskersworth and Lady Pearl Weatherpaws. This project showcases advanced serverless architecture, AI integration, and precise timezone handling.
 
-## Overview
+## 🚀 Key Features
 
-The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time. It provides three services:
+The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time. It provides three sophisticated services:
 
-- **Felix's National Days Service**: Fetches and shares daily national days and observances
-- **Pearl's Weather Service**: Provides daily weather updates
-- **Birthday Service**: Sends birthday messages on special occasions
+- **Felix's National Days Service**: AI-powered daily messages about national days and observances, with personality-driven commentary
+- **Pearl's Weather Service**: Intelligent weather updates with cat-themed observations and AI-generated insights
+- **Birthday Service**: Personalized birthday messages with unique AI-generated content for each recipient
 
-### Key Features
+### Technical Capabilities
 
-- 🐱 Daily messages about national days and observances (Felix)
-- 🌤️ Daily weather updates with cat-themed observations (Pearl)
-- 🎂 Birthday messages for special occasions (both Felix and Pearl)
-- 🤖 AI-generated content using Claude (used by both Felix and Pearl)
-- ☁️ Serverless architecture using AWS Lambda
-- ⏰ Automated daily execution at 7 AM Eastern Time with automatic DST handling
+- **Precise Timezone Management**: Sophisticated DST handling ensures consistent 7 AM Eastern Time execution
+- **Serverless Architecture**: Built on AWS Lambda with zero infrastructure maintenance
+- **Scalable Design**: Handles multiple services in a single Lambda function
+- **Production-Ready**: Comprehensive error handling, logging, and monitoring
+- **AI Integration**: Claude AI powers natural language generation for unique, personality-driven content
 
-## Project Structure
+## 🏗️ Technical Architecture
 
+### Core Components
+
+- **AWS Lambda**: Serverless execution environment
+- **EventBridge**: Precise scheduling with automatic DST transitions
+- **Systems Manager**: Secure configuration management
+- **CloudWatch**: Comprehensive monitoring and logging
+- **Claude AI**: Natural language generation for bot personalities
+
+### Advanced DST Handling
+
+The bot implements a sophisticated scheduling system that automatically adjusts for Daylight Saving Time:
+
+```python
+# Automatic DST transition handling
+if current_month == 3 and 8 <= current_day <= 14:  # Second Sunday in March
+    events.put_rule(
+        Name="DailyScheduleEDT",
+        ScheduleExpression="cron(0 11 * * ? *)",  # 7 AM EDT
+        State="ENABLED"
+    )
 ```
+
+- **Automatic Transitions**: Seamlessly switches between EDT and EST
+- **Zero Manual Intervention**: Fully automated DST handling
+- **Consistent Execution**: Maintains 7 AM local time year-round
+
+## 📁 Project Structure
+
+```text
 felix-and-pearl-bots/
-├── src/                  # Source code directory
-│   ├── lambda_function.py    # Main Lambda function handling all services
-│   ├── app.py               # Message handling and Discord integration
-│   ├── birthday_config.py   # Birthday configuration
-│   ├── bot_config.py       # General bot configuration
-│   ├── dst_switch.py       # DST transition handling
-│   └── prompts.py          # Bot prompts and templates
-├── pyproject.toml      # Project configuration and dependencies
-├── template.yaml       # AWS SAM template
-├── .env.example       # Example environment variables template
-├── env.json           # Local development environment variables
-├── events/            # Test event files
-└── README.md          # This file
+├── src/
+│   ├── lambda_function.py    # Main Lambda handler with all services
+│   ├── dst_switch.py        # Sophisticated DST transition handling
+│   ├── env_config.py        # Environment configuration management
+│   ├── prompts.py           # AI prompt engineering
+│   ├── bot_config.py        # Bot personality configurations
+│   ├── birthday_config.py   # Birthday message handling
+│   └── app.py              # Core application setup
+├── scripts/
+│   ├── build_lambda.py     # Lambda package builder
+│   ├── deploy.py           # One-command deployment
+│   └── test.py            # Testing and validation
+├── template.yaml          # AWS SAM infrastructure
+├── pyproject.toml        # Python project configuration
+└── README.md            # Project documentation
 ```
 
-## Setup
+## 🛠️ Development
 
 ### Quick Start
 
-1. Clone the repository
-2. Install dependencies: `pip install .`
-3. Copy `.env.example` to `.env` and fill in your values
-4. Deploy: `sam build && sam deploy --guided`
-5. Configure environment variables in AWS Systems Manager
+1. Clone and setup:
 
-### Prerequisites
+   ```bash
+   git clone https://github.com/yourusername/felix-and-pearl-bots.git
+   cd felix-and-pearl-bots
+   poetry install
+   ```
 
-- AWS CLI installed and configured
-- AWS SAM CLI installed
-- Python 3.7 or higher
-- Anthropic API key (used by both bots)
-- Discord webhook URL (used by both bots)
-- OpenWeather API key (used by Pearl's weather service)
+2. Configure environment:
 
-### Configuration Files
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
 
-The project uses several configuration files:
-- `pyproject.toml`: Project configuration and dependencies
-- `.env.example`: Template for environment variables (copy to `.env` for local development)
-- `env.json`: Local development environment variables for SAM CLI
+3. Deploy:
 
-### Environment Variables
+   ```bash
+   poetry run deploy
+   ```
 
-The bot uses the following environment variables (configure in AWS Systems Manager or `.env`):
-- `ANTHROPIC_API_KEY`: Your Anthropic API key (used by both bots)
-- `FELIX_DISCORD_WEBHOOK_URL`: Discord webhook URL for Felix's messages
-- `PEARL_DISCORD_WEBHOOK_URL`: Discord webhook URL for Pearl's messages
-- `WEATHER_API_KEY`: OpenWeather API key (for Pearl's weather service)
-- `WEATHER_LOCATION`: Location for weather updates (optional)
-- `WEATHER_LAT`: Latitude for weather updates (required for OpenWeather One Call API 3.0)
-- `WEATHER_LON`: Longitude for weather updates (required for OpenWeather One Call API 3.0)
-- `BIRTHDAYS_CONFIG`: JSON string containing birthday configuration
-- `TEST_MODE`: When set to 'true', prevents actual Discord messages from being sent (useful for testing)
+### Development Tools
 
-## Birthday Configuration
+- **Poetry**: Modern Python dependency management
+- **AWS SAM**: Infrastructure as Code
+- **Type Hints**: Full Python type annotation support
+- **Logging**: Comprehensive CloudWatch integration
 
-Birthdays are configured in `birthday_config.py` without exposing personal information. The format is:
-```python
-BIRTHDAYS = {
-    "MM-DD": {"name": "display_name"},
-    # Example: "04-16": {"name": "Felix"}
-}
-```
+## 🔒 Security & Configuration
 
-When a birthday occurs:
-1. Both Felix and Pearl send birthday messages
-2. If it's a cat's own birthday, they also send a thank you message after receiving wishes from their sibling and family
+- **Secure Secrets**: Environment variables managed through AWS Systems Manager
+- **API Keys**: Securely stored and never exposed in code
+- **Test Mode**: Safe development environment with message suppression
 
-## Development
+## 📊 Monitoring
 
-```bash
-# Install in development mode
-pip install -e .
+- **CloudWatch Logs**: Detailed execution tracking
+- **Error Handling**: Comprehensive error logging and recovery
+- **Performance Metrics**: Lambda execution monitoring
 
-# Run locally
-sam local invoke FelixPearlBotFunction --env-vars env.json --event events/test-event.json
-```
+## 🎯 Technical Highlights
 
-## Monitoring
+- **Single Lambda Function**: Efficiently handles multiple services
+- **AI Integration**: Claude API for natural language generation
+- **Timezone Precision**: Sophisticated DST handling
+- **Serverless Architecture**: Zero infrastructure maintenance
+- **Production-Ready**: Comprehensive error handling and monitoring
 
-Logs can be viewed in CloudWatch Logs under the following log group:
-- `/aws/lambda/FelixPearlBotFunction` - Main bot function
+## 📝 License
 
-You can monitor the system through:
-1. CloudWatch Logs for detailed execution logs and errors
-2. CloudWatch Metrics for Lambda function invocations and errors
-3. CloudWatch Alarms can be set up for:
-   - High failure rates
-   - Lambda function errors 
-
-### Scheduling and DST Handling
-
-The bot uses a sophisticated scheduling system to ensure consistent 7 AM Eastern Time execution:
-
-1. **Daily Schedule**:
-   - EDT Schedule: Runs at 7 AM EDT (11:00 UTC)
-   - EST Schedule: Runs at 7 AM EST (12:00 UTC)
-
-2. **DST Transition Handling**:
-   - Automatic switching between EDT and EST schedules
-   - DST switch function runs at midnight on transition days:
-     - Second Sunday in March (spring forward)
-     - First Sunday in November (fall back)
-   - Only one schedule is active at a time to prevent duplicate executions
-
-3. **Schedule Management**:
-   - The DST switch function automatically enables/disables the appropriate schedule
-   - Uses EventBridge rules for reliable scheduling
-   - Maintains consistent 7 AM local time execution year-round 
+MIT License - See LICENSE file for details
