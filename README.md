@@ -16,9 +16,9 @@ integration for smart, engaging messaging.
 - [🚀 Features](#-features)
 - [⚡ Quick Start](#-quick-start)
 - [📁 Project Structure](#-project-structure)
-- [🏗️ Architecture Overview](#-architecture-overview)
+- [🏗️ Architecture Overview](#%EF%B8%8F-architecture-overview)
 - [🔒 Security & Best Practices](#-security--best-practices)
-- [🛠️ Development](#-development)
+- [🛠️ Development](#%EF%B8%8F-development)
 - [📄 License](#-license)
 
 ---
