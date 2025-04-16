@@ -1,5 +1,7 @@
 import logging
 from typing import Dict, List, Optional, TypedDict
+import pytz
+from datetime import datetime
 
 import anthropic
 
@@ -49,37 +51,56 @@ def generate_weather_message(weather_data: Dict) -> Optional[str]:
         The generated weather message or None if there's an error.
     """
     try:
+        # Format sunrise/sunset times
+        ny_tz = pytz.timezone("America/New_York")
+        sunrise_dt = datetime.fromtimestamp(weather_data["sunrise"], tz=pytz.UTC).astimezone(ny_tz)
+        sunset_dt = datetime.fromtimestamp(weather_data["sunset"], tz=pytz.UTC).astimezone(ny_tz)
+
         # Format the detailed weather data for the prompt
-        prompt = WEATHER_PROMPT.format(
-            full_name=PEARL["full_name"],
-            description=PEARL["description"],
-            location=env.weather_location,
-            temperature=weather_data["temp"],
-            feels_like=weather_data["feels_like"],
-            weather_description=weather_data["description"],
-            humidity=weather_data["humidity"],
-            pressure=weather_data["pressure"],
-            wind_speed=weather_data["wind_speed"],
-            wind_gust_line=(
+        formatted_data = {
+            "full_name": PEARL["full_name"],
+            "description": PEARL["description"],
+            "location": env.weather_location,
+            "temperature": f"{weather_data['temp']}°F",
+            "feels_like": f"{weather_data['feels_like']}°F",
+            "weather_description": weather_data["description"],
+            "humidity": f"{weather_data['humidity']}%",
+            "pressure": f"{weather_data['pressure']} hPa",
+            "wind_speed": f"{weather_data['wind_speed']} mph",
+            "wind_gust_line": (
                 f" (gusts up to {weather_data['wind_gust']} mph)"
                 if "wind_gust" in weather_data
                 else ""
             ),
-            clouds=weather_data["clouds"],
-            visibility=weather_data["visibility"],
-            temp_max=weather_data["temp_max"],
-            temp_min=weather_data["temp_min"],
-            morning_weather=weather_data["morning_weather"],
-            day_weather=weather_data["day_weather"],
-            evening_weather=weather_data["evening_weather"],
-            night_weather=weather_data["night_weather"],
-            pop=weather_data["pop"],  # Precipitation probability
-            rain_line=f" Expect rain: {weather_data['rain']} mm" if "rain" in weather_data else "",
-            snow_line=f" Expect snow: {weather_data['snow']} mm" if "snow" in weather_data else "",
-            sunrise=weather_data["sunrise"],
-            sunset=weather_data["sunset"],
-        )
+            "clouds": f"{weather_data['clouds']}%",
+            "visibility": f"{weather_data['visibility']} m",
+            "temp_max": f"{weather_data['temp_max']}°F",
+            "temp_min": f"{weather_data['temp_min']}°F",
+            "morning_weather": weather_data["morning_weather"],
+            "day_weather": weather_data["day_weather"],
+            "evening_weather": weather_data["evening_weather"],
+            "night_weather": weather_data["night_weather"],
+            "pop": f"{weather_data['pop'] * 100}%",  # Convert to percentage
+            "rain_line": (
+                f" Expect rain: {weather_data['rain']} mm"
+                if "rain" in weather_data
+                else ""
+            ),
+            "snow_line": (
+                f" Expect snow: {weather_data['snow']} mm"
+                if "snow" in weather_data
+                else ""
+            ),
+            "sunrise": sunrise_dt.strftime("%I:%M %p"),
+            "sunset": sunset_dt.strftime("%I:%M %p"),
+        }
 
+        if env.test_mode:
+            logger.info("🌤️ Weather data being sent to AI:")
+            for key, value in formatted_data.items():
+                logger.info(f"  {key}: {value}")
+
+        prompt = WEATHER_PROMPT.format(**formatted_data)
         return generate_message_with_claude(prompt, PEARL)
 
     except Exception as e:

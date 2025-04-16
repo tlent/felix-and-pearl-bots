@@ -1,6 +1,8 @@
 from typing import Optional, TypedDict
 import requests
 import json
+from datetime import datetime
+import pytz
 
 from config import logger, env
 
@@ -55,6 +57,20 @@ def get_weather() -> Optional[WeatherData]:
         current = data.get("current", {})
         daily = data.get("daily", [{}])[0]  # Get the first day's forecast
 
+        # Convert sunrise/sunset timestamps to local time
+        ny_tz = pytz.timezone("America/New_York")
+        sunrise_utc = datetime.fromtimestamp(daily.get("sunrise", 0), tz=pytz.UTC)
+        sunset_utc = datetime.fromtimestamp(daily.get("sunset", 0), tz=pytz.UTC)
+
+        sunrise_local = sunrise_utc.astimezone(ny_tz)
+        sunset_local = sunset_utc.astimezone(ny_tz)
+
+        if env.test_mode:
+            logger.info(f"🌅 Sunrise UTC: {sunrise_utc.strftime('%H:%M %Z')}")
+            logger.info(f"🌅 Sunrise Local: {sunrise_local.strftime('%H:%M %Z')}")
+            logger.info(f"🌇 Sunset UTC: {sunset_utc.strftime('%H:%M %Z')}")
+            logger.info(f"🌇 Sunset Local: {sunset_local.strftime('%H:%M %Z')}")
+
         weather_data = {
             "temp": current.get("temp", 0.0),
             "feels_like": current.get("feels_like", 0.0),
@@ -76,8 +92,8 @@ def get_weather() -> Optional[WeatherData]:
             "rain": daily.get("rain", 0.0),
             "snow": daily.get("snow", 0.0),
             # Sun times
-            "sunrise": daily.get("sunrise", 0),
-            "sunset": daily.get("sunset", 0),
+            "sunrise": int(sunrise_local.timestamp()),
+            "sunset": int(sunset_local.timestamp()),
         }
 
         if env.test_mode:
