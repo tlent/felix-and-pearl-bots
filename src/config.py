@@ -1,5 +1,4 @@
 import os
-import json
 
 # Bot names and identities
 FELIX = {
@@ -27,7 +26,52 @@ class EnvConfig:
         self.weather_location = os.getenv("WEATHER_LOCATION")
         self.weather_lat = float(os.getenv("WEATHER_LAT"))
         self.weather_lon = float(os.getenv("WEATHER_LON"))
-        self.birthdays_config = json.loads(os.getenv("BIRTHDAYS_CONFIG"))
+
+        # Parse birthdays from simple format: "MM-DD:Name,MM-DD:Name"
+        birthdays_str = os.getenv("BIRTHDAYS_CONFIG", "")
+        self.birthdays_config = {}
+
+        if not birthdays_str:
+            return
+
+        try:
+            for entry in birthdays_str.split(","):
+                entry = entry.strip()
+                if not entry:
+                    continue
+
+                if ":" not in entry:
+                    raise ValueError(
+                        f"Invalid birthday entry format: '{entry}'. Expected 'MM-DD:Name'"
+                    )
+
+                date, name = entry.split(":", 1)
+                date = date.strip()
+                name = name.strip()
+
+                if not date or not name:
+                    raise ValueError(f"Empty date or name in entry: '{entry}'")
+
+                # Validate date format (MM-DD)
+                try:
+                    month, day = date.split("-")
+                    if not (1 <= int(month) <= 12 and 1 <= int(day) <= 31):
+                        raise ValueError(
+                            f"Invalid date in entry: '{entry}'. "
+                            "Month must be 1-12, day must be 1-31"
+                        )
+                except ValueError as e:
+                    raise ValueError(
+                        f"Invalid date format in entry: '{entry}'. Expected MM-DD"
+                    ) from e
+
+                self.birthdays_config[date] = name
+
+        except Exception as e:
+            raise ValueError(
+                f"Error parsing BIRTHDAYS_CONFIG: {str(e)}. "
+                "Format should be 'MM-DD:Name,MM-DD:Name'"
+            ) from e
 
 
 env = EnvConfig()

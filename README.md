@@ -62,7 +62,7 @@ integration for smart, engaging messaging.
 
 ```bash
 # Clone and install
-git clone https://github.com/yourusername/felix-and-pearl-bots.git
+git clone https://github.com/tlent/felix-and-pearl-bots.git
 cd felix-and-pearl-bots
 poetry install
 
@@ -82,20 +82,20 @@ sam build && sam deploy --guided
 ```text
 .
 ├── src/
-│   ├── services/            # Core bot services
-│   │   ├── birthdays.py     # Birthday messages
-│   │   ├── national_days.py # National day updates
-│   │   └── weather.py       # Weather updates
-│   ├── ai.py               # Claude AI integration
-│   ├── config.py           # Configuration
-│   ├── discord.py          # Discord integration
-│   ├── dst_switch.py       # DST handling
-│   ├── lambda_function.py  # Main handler
-│   └── prompts.py          # AI prompts
-├── env.json                # Local config
-├── pyproject.toml          # Poetry dependencies
-├── requirements.txt        # Lambda dependencies
-└── template.yaml           # AWS config
+│   ├── services/            # Core service modules for bot features
+│   │   ├── birthdays.py     # Birthday detection and AI-powered message generation
+│   │   ├── national_days.py # Web scraping and processing of national holidays
+│   │   └── weather.py       # Weather API integration and forecast processing
+│   ├── ai.py               # Claude AI integration and personality-driven messaging
+│   ├── config.py           # Environment, service, and character configuration
+│   ├── discord.py          # Discord webhook and message handling
+│   ├── dst_switch.py       # Timezone, DST, and AWS EventBridge management
+│   ├── lambda_function.py  # AWS Lambda entry point and service coordination
+│   └── prompts.py          # AI prompt templates and personality settings
+├── env.json                # Local environment variables and secrets
+├── pyproject.toml          # Poetry package management
+├── requirements.txt        # AWS Lambda runtime dependencies
+└── template.yaml           # AWS SAM infrastructure definition
 ```
 
 ## 🏗️ Architecture Overview
@@ -177,7 +177,7 @@ The project features a robust Daylight Saving Time system that:
        "WEATHER_LOCATION": "City,State,Country",
        "WEATHER_LAT": "latitude",
        "WEATHER_LON": "longitude",
-       "BIRTHDAYS_CONFIG": "{\"MM-DD\": \"Name\"}",
+       "BIRTHDAYS_CONFIG": "MM-DD:Name,MM-DD:Name",
        "TZ": "America/New_York",
        "TEST_MODE": "true"
      }
