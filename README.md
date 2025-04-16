@@ -3,8 +3,8 @@
 An AI-powered, zero-maintenance Discord bot duo delivering daily national day
 highlights and weather updates from the unique perspective of two witty feline
 personas. Built on a robust serverless architecture using AWS Lambda, it
-features sophisticated DST handling and seamless Claude AI integration for
-smart, engaging messaging.
+features sophisticated Daylight Saving Time handling and seamless Claude AI
+integration for smart, engaging messaging.
 
 ---
 
@@ -30,10 +30,10 @@ smart, engaging messaging.
   Operates on a serverless stack with AWS Lambda and AWS SAM, ensuring minimal
   overhead and seamless scalability.
 
-- **Sophisticated DST Handling:**  
-  Utilizes precise timezone detection and automated adjustments for DST
-  transitions, guaranteeing consistent scheduling (7 AM Eastern Time) even
-  during spring forward or fall back.
+- **Sophisticated Daylight Saving Time Handling:**  
+  Utilizes precise timezone detection and automated adjustments for Daylight
+  Saving Time transitions, guaranteeing consistent scheduling (7 AM Eastern
+  Time) even during spring forward or fall back.
 
 - **Advanced AI Integration:**  
   Leverages Claude AI for natural language processing, ensuring engaging and
@@ -54,8 +54,8 @@ smart, engaging messaging.
   and zero infrastructure management.
 
 - **Amazon EventBridge:**  
-  Provides DST-aware scheduling, ensuring messages are dispatched precisely when
-  intended.
+  Provides Daylight Saving Time-aware scheduling, ensuring messages are
+  dispatched precisely when intended.
 
 - **AWS Parameter Store:**  
   Handles secure storage of environment variables and secrets.
@@ -64,11 +64,11 @@ smart, engaging messaging.
   Offers real-time monitoring and logging, vital for observability and
   debugging.
 
-### DST Handling
+### Daylight Saving Time Handling
 
-The project features a robust DST system that:
+The project features a robust Daylight Saving Time system that:
 
-- Automatically detects and adapts to DST transitions.
+- Automatically detects and adapts to Daylight Saving Time transitions.
 - Maintains consistent execution at 7 AM Eastern Time.
 - Accurately handles both spring-forward and fall-back transitions using
   Python's `zoneinfo` module.
@@ -153,7 +153,7 @@ sam build && sam deploy --guided
 │   ├── ai.py                 # Integrates Claude AI for natural, engaging messaging
 │   ├── config.py             # Manages configuration and environment variables
 │   ├── discord.py            # Handles Discord webhook communications
-│   ├── dst_switch.py         # Detects and manages DST transitions accurately
+│   ├── dst_switch.py         # Detects and manages Daylight Saving Time transitions accurately
 │   ├── lambda_function.py    # The main Lambda handler orchestrating services
 │   └── prompts.py            # Contains AI prompt templates and message formatting utilities
 ├── env.json                  # Environment configuration
