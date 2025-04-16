@@ -4,21 +4,18 @@ from typing import Dict, List, Optional
 
 import anthropic
 import pytz
-from dotenv import load_dotenv
 
-from src.config.config import BIRTHDAYS, FELIX, PEARL, env
-from src.config.prompts import (
+from config import FELIX, PEARL, env
+from prompts import (
     OWN_BIRTHDAY_PROMPT,
     OTHER_BIRTHDAY_PROMPT,
     THANK_YOU_PROMPT,
 )
+from ai import generate_message_with_claude
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Load environment variables
-load_dotenv()
 
 # Initialize Anthropic client
 claude = anthropic.Anthropic(api_key=env.anthropic_api_key)
@@ -43,28 +40,11 @@ def check_birthdays(test_date: Optional[str] = None) -> List[Dict]:
 
     # Check if today is anyone's birthday
     birthdays = []
-    if date_str in BIRTHDAYS:
-        birthdays.append(BIRTHDAYS[date_str])
-        logger.info(f"Found birthday for {BIRTHDAYS[date_str]['name']}!")
+    if date_str in env.birthdays_config:
+        birthdays.append(env.birthdays_config[date_str])
+        logger.info(f"Found birthday for {env.birthdays_config[date_str]}!")
 
     return birthdays
-
-
-def generate_message_with_claude(prompt: str, character: Dict) -> str:
-    """
-    Generate a message using Claude from a character's perspective.
-    Args:
-        prompt: The prompt to send to Claude
-        character: Dictionary containing character information (name, description, etc.)
-    """
-    response = claude.messages.create(
-        model="claude-3-5-haiku-latest",
-        max_tokens=1000,
-        temperature=0.7,
-        system=f"You are {character['full_name']}, {character['description']}.",
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response.content[0].text
 
 
 def generate_birthday_message(birthday_info: Dict, character: Dict) -> str:

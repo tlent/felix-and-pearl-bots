@@ -2,27 +2,22 @@ import json
 import logging
 from typing import Dict, Any
 
-from dotenv import load_dotenv
-
-from src.config.config import env
-from src.handlers.ai import generate_national_days_message, generate_weather_message
-from src.handlers.discord import send_felix_message, send_pearl_message
-from src.services.birthdays import (
+from config import env
+from ai import generate_national_days_message, generate_weather_message
+from discord import send_felix_message, send_pearl_message
+from services.birthdays import (
     check_birthdays,
     generate_felix_birthday_message,
     generate_pearl_birthday_message,
     generate_felix_thank_you_message,
     generate_pearl_thank_you_message,
 )
-from src.services.national_days import get_national_days
-from src.services.weather import get_weather
+from services.national_days import get_national_days
+from services.weather import get_weather
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Load environment variables
-load_dotenv()
 
 
 def is_test_mode(event: Dict) -> bool:

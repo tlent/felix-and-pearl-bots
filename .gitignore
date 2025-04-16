@@ -1,25 +1,12 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
-.Python
 env/
 build/
-develop-eggs/
 dist/
-downloads/
 eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
 venv/
 .env
 
@@ -30,15 +17,11 @@ samconfig.toml
 # IDE
 .idea/
 .vscode/
-!.vscode/settings.json
 *.swp
 *.swo
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
 .Trashes
 ehthumbs.db
 Thumbs.db
@@ -51,7 +34,6 @@ env.json
 
 # Poetry
 poetry.lock
-__pypackages__/
 .poetry/
 .venv/
 

@@ -4,78 +4,59 @@ Transform: AWS::Serverless-2016-10-31
 Description: FelixPearlBot
 
 Parameters:
-  Environment:
+  FelixWebhookUrl:
     Type: String
-    Default: production
-    AllowedValues:
-      - production
-      - development
-    Description: Environment to deploy to
-
-  DiscordWebhookUrl:
-    Type: String
-    Description: Discord webhook URL for bot messages
+    Description: felix-discord-webhook
     NoEcho: true
-
-  ClaudeApiKey:
+  PearlWebhookUrl:
     Type: String
-    Description: Claude API key for AI message generation
+    Description: pearl-discord-webhook
     NoEcho: true
-
-  OpenWeatherApiKey:
+  AnthropicApiKey:
     Type: String
-    Description: OpenWeather API key for weather data
+    Description: anthropic-api-key
     NoEcho: true
-
-  BirthdayChannelId:
+  WeatherApiKey:
     Type: String
-    Description: Discord channel ID for birthday messages
-    Default: ""
-
-  WeatherChannelId:
+    Description: weather-api-key
+    NoEcho: true
+  WeatherLocation:
     Type: String
-    Description: Discord channel ID for weather updates
-    Default: ""
-
-  NationalDaysChannelId:
+    Description: weather-location
+  WeatherLat:
     Type: String
-    Description: Discord channel ID for national days messages
-    Default: ""
-
-  TestMode:
+    Description: weather-latitude
+  WeatherLon:
     Type: String
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-    Description: Enable test mode to suppress messages
+    Description: weather-longitude
+  BirthdaysConfig:
+    Type: String
+    Description: birthdays-json-config
+    NoEcho: true
 
 Resources:
   FelixPearlBotFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
+      CodeUri: src
       Handler: lambda_function.lambda_handler
-      Runtime: python3.9
-      Timeout: 30
-      MemorySize: 256
+      Runtime: python3.13
+      Timeout: 60
+      MemorySize: 512
       Environment:
         Variables:
-          ENVIRONMENT: !Ref Environment
-          DISCORD_WEBHOOK_URL: !Ref DiscordWebhookUrl
-          CLAUDE_API_KEY: !Ref ClaudeApiKey
-          OPENWEATHER_API_KEY: !Ref OpenWeatherApiKey
-          BIRTHDAY_CHANNEL_ID: !Ref BirthdayChannelId
-          WEATHER_CHANNEL_ID: !Ref WeatherChannelId
-          NATIONAL_DAYS_CHANNEL_ID: !Ref NationalDaysChannelId
-          TEST_MODE: !Ref TestMode
+          ANTHROPIC_API_KEY: !Ref AnthropicApiKey
+          FELIX_DISCORD_WEBHOOK_URL: !Ref FelixWebhookUrl
+          PEARL_DISCORD_WEBHOOK_URL: !Ref PearlWebhookUrl
+          WEATHER_API_KEY: !Ref WeatherApiKey
+          WEATHER_LOCATION: !Ref WeatherLocation
+          WEATHER_LAT: !Ref WeatherLat
+          WEATHER_LON: !Ref WeatherLon
+          BIRTHDAYS_CONFIG: !Ref BirthdaysConfig
+          TEST_MODE: "false"
+          TZ: "America/New_York"
       Policies:
         - AWSLambdaBasicExecutionRole
-      Tags:
-        Project: felix-pearl-bot
-        Environment: !Ref Environment
-        Service: discord-bot
-        CreatedBy: sam
       Events:
         DailyScheduleEDT:
           Type: Schedule
@@ -90,32 +71,52 @@ Resources:
             Description: Daily schedule for EST
             Enabled: false
 
+  DSTSwitchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: DSTSwitchInlinePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - events:PutRule
+                  - events:PutTargets
+                  - events:DeleteRule
+                  - events:RemoveTargets
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
   DSTSwitchFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/
-      Handler: services.dst_switch.lambda_handler
-      Runtime: python3.9
+      CodeUri: src
+      Handler: dst_switch.lambda_handler
+      Runtime: python3.13
       Timeout: 30
       MemorySize: 128
+      Role: !GetAtt DSTSwitchRole.Arn
       Environment:
         Variables:
-          ENVIRONMENT: !Ref Environment
-      Policies:
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - events:PutRule
-                - events:PutTargets
-                - events:DeleteRule
-                - events:RemoveTargets
-              Resource: "*"
+          TZ: "America/New_York"
       Events:
         DSTCheck:
           Type: Schedule
           Properties:
-            Schedule: cron(0 12 * * ? *)
+            Schedule: cron(0 10 * * ? *) # Check DST daily at 10 UTC
             Description: Daily DST check
             Enabled: true
 

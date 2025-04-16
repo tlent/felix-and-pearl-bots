@@ -1,17 +1,12 @@
 import logging
-from typing import Dict
 
 import requests
-from dotenv import load_dotenv
 
-from src.config.config import env, FELIX, PEARL
+from config import env, FELIX, PEARL
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Load environment variables
-load_dotenv()
 
 
 def send_discord_message(
