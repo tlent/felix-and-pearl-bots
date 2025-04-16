@@ -83,7 +83,7 @@ The project features a robust DST system that:
 - AWS SAM CLI
 - Configured AWS credentials
 - Discord webhook URLs
-- Claude AI API key (ANTHROPIC_API_KEY)
+- Claude AI API key
 - OpenWeatherMap API key
 
 ### Local Setup
@@ -123,19 +123,21 @@ The project features a robust DST system that:
    }
    ```
 
+4. **Run Locally:**
+
+   Test the bot locally using the following:
+
+   ```bash
+   sam build && sam local invoke FelixPearlBotFunction --env-vars env.json
+   ```
+
 ### Deployment
 
-1. **Build the Lambda Package:**
+Build and deploy with:
 
-   ```bash
-   sam build
-   ```
-
-2. **Deploy with AWS SAM:**
-
-   ```bash
-   sam deploy --guided
-   ```
+```bash
+sam build && sam deploy --guided
+```
 
 ---
 
