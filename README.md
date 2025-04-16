@@ -1,123 +1,173 @@
 # Felix & Pearl Bot 🐱🌤️
 
-A Discord bot duo that delivers daily messages about national days and weather updates, written from the perspective of two cats: Sir Felix Whiskersworth and Lady Pearl Weatherpaws. This project uses serverless architecture, AI integration, and handles timezone changes.
+An AI-powered, zero-maintenance Discord bot duo delivering daily national day
+highlights and weather updates from the unique perspective of two witty feline
+personas. Built on a robust serverless architecture using AWS Lambda, it
+features sophisticated DST handling and seamless Claude AI integration for
+smart, engaging messaging.
 
-## 🚀 Key Features
+---
 
-The bot runs as an AWS Lambda function that triggers daily at 7 AM Eastern Time. It provides three services:
+## 🚀 Features
 
-- **Felix's National Days Service**: Daily messages about national days and observances, with commentary using Claude AI
-- **Pearl's Weather Service**: Weather updates with cat-themed observations, using OpenWeatherMap API
-- **Birthday Service**: Birthday messages with AI-generated content for each recipient
+### Core Capabilities
 
-### Technical Capabilities
+- **Felix's National Days:**  
+  Delivers daily highlights on national observances and quirky celebrations,
+  featuring AI-generated commentary that adds a fun twist.
 
-- **Timezone Management**: DST handling ensures 7 AM Eastern Time execution
-- **Serverless Architecture**: Built on AWS Lambda with AWS SAM for deployment
-- **AI Integration**: Claude AI for natural language generation
+- **Pearl's Weather:**  
+  Provides timely weather updates with cat-themed insights via the
+  OpenWeatherMap API—keeping users informed and entertained.
 
-## 🏗️ Technical Architecture
+- **Birthday Service:**  
+  Sends personalized, AI-generated birthday messages to celebrate special days
+  uniquely.
 
-### Core Components
+### Technical Highlights
 
-- **AWS Lambda**: Serverless execution environment
-- **EventBridge**: Scheduling with DST transitions
-- **Parameter Store**: Secure storage of API keys and configuration
-- **CloudWatch**: Basic monitoring and logging
-- **Claude AI**: Natural language generation
+- **Zero-Maintenance Architecture:**  
+  Operates on a serverless stack with AWS Lambda and AWS SAM, ensuring minimal
+  overhead and seamless scalability.
+
+- **Sophisticated DST Handling:**  
+  Utilizes precise timezone detection and automated adjustments for DST
+  transitions, guaranteeing consistent scheduling (7 AM Eastern Time) even
+  during spring forward or fall back.
+
+- **Advanced AI Integration:**  
+  Leverages Claude AI for natural language processing, ensuring engaging and
+  context-aware messaging.
+
+- **Secure Configuration:**  
+  Manages sensitive data using AWS Parameter Store, ensuring secure and
+  centralized configuration.
+
+---
+
+## 🏗️ Architecture Overview
+
+### Serverless Stack
+
+- **AWS Lambda:**  
+  Fully serverless execution with automatic scaling, built-in fault tolerance,
+  and zero infrastructure management.
+
+- **Amazon EventBridge:**  
+  Provides DST-aware scheduling, ensuring messages are dispatched precisely when
+  intended.
+
+- **AWS Parameter Store:**  
+  Handles secure storage of environment variables and secrets.
+
+- **Amazon CloudWatch:**  
+  Offers real-time monitoring and logging, vital for observability and
+  debugging.
 
 ### DST Handling
 
-The bot handles Daylight Saving Time through dedicated DST management code:
+The project features a robust DST system that:
 
-```python
-def is_dst_change_day() -> bool:
-    """Check if today is a DST change day."""
-    now = get_current_time()
+- Automatically detects and adapts to DST transitions.
+- Maintains consistent execution at 7 AM Eastern Time.
+- Accurately handles both spring-forward and fall-back transitions using
+  Python's `zoneinfo` module.
 
-    # Check for spring forward (second Sunday in March)
-    if now.month == 3:
-        first_day = datetime(now.year, 3, 1, tzinfo=ZoneInfo("America/New_York"))
-        days_until_sunday = (6 - first_day.weekday()) % 7
-        second_sunday = first_day + timedelta(days=days_until_sunday + 7)
-        return now.date() == second_sunday.date()
+---
 
-    # Check for fall back (first Sunday in November)
-    if now.month == 11:
-        first_day = datetime(now.year, 11, 1, tzinfo=ZoneInfo("America/New_York"))
-        days_until_sunday = (6 - first_day.weekday()) % 7
-        first_sunday = first_day + timedelta(days=days_until_sunday)
-        return now.date() == first_sunday.date()
+## 🛠️ Development
 
-    return False
-```
+### Prerequisites
 
-- **DST Handling**: Uses zoneinfo module for timezone calculations
-- **Automatic Transitions**: Switches between EDT and EST schedules
-- **Consistent Execution**: Maintains 7 AM local time year-round
+- Python 3.13 or later
+- AWS SAM CLI
+- Configured AWS credentials
+- Discord webhook URLs
+- Claude AI API key (ANTHROPIC_API_KEY)
+- OpenWeatherMap API key
+
+### Local Setup
+
+1. **Clone the Repository:**
+
+   ```bash
+   git clone <repository-url>
+   cd <repository-directory>
+   ```
+
+2. **Install Dependencies:**
+
+   ```bash
+   poetry install
+   ```
+
+3. **Configure Environment:**
+
+   Create `env.json` based on `env.json.sample` with your credentials and
+   settings:
+
+   ```json
+   {
+     "FelixPearlBotFunction": {
+       "FELIX_DISCORD_WEBHOOK_URL": "your-felix-webhook-url",
+       "PEARL_DISCORD_WEBHOOK_URL": "your-pearl-webhook-url",
+       "ANTHROPIC_API_KEY": "your-claude-api-key",
+       "WEATHER_API_KEY": "your-openweathermap-key",
+       "WEATHER_LOCATION": "City,State,Country",
+       "WEATHER_LAT": "latitude",
+       "WEATHER_LON": "longitude",
+       "BIRTHDAYS_CONFIG": "{\"MM-DD\": \"Name\"}",
+       "TZ": "America/New_York",
+       "TEST_MODE": "true"
+     }
+   }
+   ```
+
+### Deployment
+
+1. **Build the Lambda Package:**
+
+   ```bash
+   sam build
+   ```
+
+2. **Deploy with AWS SAM:**
+
+   ```bash
+   sam deploy --guided
+   ```
+
+---
 
 ## 📁 Project Structure
 
 ```text
-felix-and-pearl-bots/
+.
 ├── src/
-│   ├── lambda_function.py    # Main Lambda handler
 │   ├── services/
-│   │   ├── birthdays.py      # Birthday service
-│   │   ├── national_days.py  # National days service
-│   │   ├── weather.py        # Weather service
-│   │   └── dst_switch.py     # DST transition handling
-│   ├── handlers/
-│   │   ├── discord.py        # Discord message handling
-│   │   └── ai.py             # AI message generation
-│   └── config/
-│       ├── config.py         # Configuration
-│       └── prompts.py        # AI prompts
-├── scripts/
-│   ├── build_lambda.py       # Lambda package builder
-│   ├── deploy.py             # Deployment script
-│   └── test.py               # Testing script
-├── template.yaml             # AWS SAM template
-├── pyproject.toml            # Python project config
-└── .env.example              # Environment variable template
+│   │   ├── birthdays.py      # Generates and schedules personalized birthday messages
+│   │   ├── national_days.py  # Fetches and formats data for national days
+│   │   └── weather.py        # Retrieves weather data and crafts cat-themed updates
+│   ├── ai.py                 # Integrates Claude AI for natural, engaging messaging
+│   ├── config.py             # Manages configuration and environment variables
+│   ├── discord.py            # Handles Discord webhook communications
+│   ├── dst_switch.py         # Detects and manages DST transitions accurately
+│   ├── lambda_function.py    # The main Lambda handler orchestrating services
+│   └── prompts.py            # Contains AI prompt templates and message formatting utilities
+├── env.json                  # Environment configuration
+├── pyproject.toml            # Poetry configuration for dependency management
+├── requirements.txt          # Python dependencies for AWS Lambda deployment
+└── template.yaml             # AWS SAM template for infrastructure deployment
 ```
 
-## 🛠️ Development
+---
 
-### Poetry Scripts
+## 🔒 Security & Best Practices
 
-The project uses Poetry for dependency management and automation. Here are the available scripts:
+- **Secure Environment Management:**  
+  All sensitive information (webhook URLs, API keys) is stored securely via AWS
+  Parameter Store and referenced through environment variables.
 
-```bash
-# Install dependencies
-poetry install
-
-# Run tests
-poetry run test
-
-# Build Lambda package
-poetry run build
-
-# Deploy to AWS
-poetry run deploy
-```
-
-Each script is configured in `pyproject.toml` and handles specific development tasks. The deploy script requires AWS credentials configured in your environment.
-
-### Development Tools
-
-- **Poetry**: Python dependency management
-- **AWS SAM**: Infrastructure as Code
-- **Logging**: Basic CloudWatch integration
-
-## 🔒 Security & Configuration
-
-- **Secrets Management**: API keys and sensitive data stored in AWS Parameter Store
-- **Test Mode**: Development environment with message suppression
-
-## 🎯 Technical Highlights
-
-- **Modular Design**: Services and handlers separation
-- **AI Integration**: Claude API for message generation
-- **Timezone Handling**: Robust DST management
-- **Serverless**: AWS Lambda deployment with AWS SAM
+- **Scalable and Maintainable:**  
+  The serverless design minimizes infrastructure overhead and maintenance,
+  allowing for rapid iteration and scalability.
