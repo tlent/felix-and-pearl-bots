@@ -6,6 +6,13 @@ source "$(dirname "$0")/aws-config.sh"
 echo "🚀 Deploying Felix & Pearl Bot..."
 echo "----------------------------------------"
 
+# Build the application
+echo "🔨 Building the application..."
+if ! sam build; then
+  echo "❌ Build failed"
+  exit 1
+fi
+
 # Get parameter overrides from env.json
 PARAMS=$(jq -r '
   .FelixPearlBotFunction |
