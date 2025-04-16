@@ -58,6 +58,14 @@ integration for smart, engaging messaging.
   Manages sensitive data using AWS Parameter Store, ensuring secure and
   centralized configuration.
 
+- **Structured Logging:**  
+  Implements comprehensive structured logging with AWS Lambda request ID tracking,
+  enabling better observability and debugging across all bot operations.
+
+- **Streamlined Deployment:**  
+  Features a simplified deployment process with AWS SAM, making it easy to
+  deploy updates and manage infrastructure as code.
+
 ## ⚡ Quick Start
 
 ```bash
@@ -194,11 +202,23 @@ The project features a robust Daylight Saving Time system that:
 
 ### Deployment
 
-Build and deploy with:
+The project uses AWS SAM for streamlined deployment:
 
 ```bash
+# Build and deploy
 sam build && sam deploy --guided
+
+# For subsequent deployments
+sam build && sam deploy
 ```
+
+The deployment process automatically handles:
+
+- Infrastructure provisioning
+- Environment variable management
+- IAM role configuration
+- CloudWatch logging setup
+- DST-aware scheduling
 
 ## 📄 License
 
