@@ -1,5 +1,5 @@
+from typing import Optional, TypedDict
 import requests
-from typing import Dict, Optional
 
 from config import logger, env
 
@@ -14,7 +14,30 @@ WEATHER_API_URL = (
 )
 
 
-def get_weather() -> Optional[Dict]:
+class WeatherData(TypedDict):
+    temp: float
+    feels_like: float
+    humidity: int
+    wind_speed: float
+    description: str
+    pressure: int
+    clouds: int
+    visibility: int
+    wind_gust: float
+    temp_max: float
+    temp_min: float
+    morning_weather: str
+    day_weather: str
+    evening_weather: str
+    night_weather: str
+    pop: float
+    rain: float
+    snow: float
+    sunrise: int
+    sunset: int
+
+
+def get_weather() -> Optional[WeatherData]:
     """
     Get current weather data and daily forecast from OpenWeatherMap API.
     Returns weather data dictionary or None if there's an error.

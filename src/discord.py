@@ -1,6 +1,11 @@
 import requests
+from typing import TypedDict
 
 from config import logger, env, FELIX, PEARL
+
+
+class WebhookResponse(TypedDict):
+    content: str
 
 
 def send_felix_message(content: str, test_mode: bool = False) -> bool:
@@ -31,7 +36,7 @@ def send_message(
             logger.info(f"💬 {character_name} would send: {content}")
             return True
 
-        response = requests.post(webhook_url, json={"content": content}, timeout=10)
+        response = requests.post(webhook_url, json=WebhookResponse(content=content), timeout=10)
         response.raise_for_status()
 
         if env.test_mode:

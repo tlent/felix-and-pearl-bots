@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Optional, TypedDict
 
 import anthropic
 
@@ -9,13 +9,18 @@ from prompts import (
     OTHER_BIRTHDAY_PROMPT,
     THANK_YOU_PROMPT,
 )
-from ai import generate_message_with_claude
+from ai import generate_message_with_claude, CharacterInfo
 
 # Initialize Anthropic client
 claude = anthropic.Anthropic(api_key=env.anthropic_api_key)
 
 
-def check_birthdays(test_date: Optional[str] = None) -> List[Dict]:
+class BirthdayInfo(TypedDict):
+    name: str
+    date: str
+
+
+def check_birthdays(test_date: Optional[str] = None) -> List[BirthdayInfo]:
     """Check if today is anyone's birthday."""
     try:
         date_str = test_date or datetime.now().strftime("%m-%d")
@@ -33,7 +38,7 @@ def check_birthdays(test_date: Optional[str] = None) -> List[Dict]:
         return []
 
 
-def generate_birthday_message(birthday_info: Dict, character: Dict) -> str:
+def generate_birthday_message(birthday_info: BirthdayInfo, character: CharacterInfo) -> str:
     """
     Generate a birthday message using Claude.
     Args:
@@ -64,7 +69,7 @@ def generate_birthday_message(birthday_info: Dict, character: Dict) -> str:
         return ""
 
 
-def generate_thank_you_message(birthday_info: Dict, character: Dict) -> str:
+def generate_thank_you_message(birthday_info: BirthdayInfo, character: CharacterInfo) -> str:
     """
     Generate a thank you message for birthday wishes.
     Args:
@@ -86,21 +91,21 @@ def generate_thank_you_message(birthday_info: Dict, character: Dict) -> str:
 
 
 # Wrapper functions for Felix and Pearl
-def generate_felix_birthday_message(birthday_info: Dict) -> str:
+def generate_felix_birthday_message(birthday_info: BirthdayInfo) -> str:
     """Generate a birthday message from Felix's perspective."""
     return generate_birthday_message(birthday_info, FELIX)
 
 
-def generate_pearl_birthday_message(birthday_info: Dict) -> str:
+def generate_pearl_birthday_message(birthday_info: BirthdayInfo) -> str:
     """Generate a birthday message from Pearl's perspective."""
     return generate_birthday_message(birthday_info, PEARL)
 
 
-def generate_felix_thank_you_message(birthday_info: Dict) -> str:
+def generate_felix_thank_you_message(birthday_info: BirthdayInfo) -> str:
     """Generate a thank you message from Felix's perspective."""
     return generate_thank_you_message(birthday_info, FELIX)
 
 
-def generate_pearl_thank_you_message(birthday_info: Dict) -> str:
+def generate_pearl_thank_you_message(birthday_info: BirthdayInfo) -> str:
     """Generate a thank you message from Pearl's perspective."""
     return generate_thank_you_message(birthday_info, PEARL)

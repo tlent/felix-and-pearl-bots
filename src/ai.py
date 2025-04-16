@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TypedDict
 
 import anthropic
 
@@ -18,7 +18,13 @@ logger = logging.getLogger(__name__)
 claude = anthropic.Anthropic(api_key=env.anthropic_api_key)
 
 
-def generate_message_with_claude(prompt: str, character: Dict) -> str:
+class CharacterInfo(TypedDict):
+    name: str
+    full_name: str
+    description: str
+
+
+def generate_message_with_claude(prompt: str, character: CharacterInfo) -> str:
     """
     Generate a message using Claude from a character's perspective.
     Args:
