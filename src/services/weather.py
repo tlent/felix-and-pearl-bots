@@ -1,13 +1,8 @@
-import logging
-from typing import Optional, Dict
-
 import requests
+from typing import Dict, Optional
 
-from config import env
+from config import logger, env
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Weather API configuration
 WEATHER_API_KEY = env.weather_api_key
@@ -58,12 +53,13 @@ def get_weather() -> Optional[Dict]:
             "sunset": daily.get("sunset"),
         }
 
-        logger.info("Successfully fetched weather data")
+        if env.test_mode:
+            logger.info("🌤️ Successfully fetched weather data")
         return weather_data
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching weather data: {str(e)}")
+        logger.error(f"❌ Failed to fetch weather data: {str(e)}")
         return None
-    except (KeyError, IndexError) as e:
-        logger.error(f"Error parsing weather data: {str(e)}")
+    except Exception as e:
+        logger.error(f"❌ Error processing weather data: {str(e)}")
         return None

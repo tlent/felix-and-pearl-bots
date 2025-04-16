@@ -1,4 +1,12 @@
 import os
+import logging
+
+# Configure logging once for the entire application
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Bot names and identities
 FELIX = {

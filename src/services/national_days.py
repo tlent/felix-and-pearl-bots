@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 from typing import List, Optional, Tuple
 
@@ -6,9 +5,7 @@ import pytz
 import requests
 from bs4 import BeautifulSoup
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from config import logger, env
 
 
 class NationalDay:
@@ -34,7 +31,8 @@ def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
 
         # Construct URL
         url = f"https://www.nationaldaycalendar.com/{month}/{month}-{day}"
-        logger.info(f"Fetching national days from: {url}")
+        if env.test_mode:
+            logger.info(f"📅 Fetching national days from: {url}")
 
         # Make request with proper headers
         headers = {
@@ -56,7 +54,8 @@ def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
 
             # Find all national day cards
             cards = soup.select(".m-card--header a")
-            logger.info(f"Found {len(cards)} total cards")
+            if env.test_mode:
+                logger.info(f"📅 Found {len(cards)} total cards")
 
             for card in cards:
                 name = card.text.strip()
@@ -67,10 +66,14 @@ def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
 
         except Exception as e:
             error_msg = f"Error parsing national days HTML: {str(e)}"
-            logger.error(error_msg)
+            logger.error(f"❌ {error_msg}")
             return [], error_msg
 
     except requests.exceptions.RequestException as e:
-        error_msg = f"Error fetching national days: {str(e)}"
-        logger.error(error_msg)
+        error_msg = f"Failed to fetch national days: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return [], error_msg
+    except Exception as e:
+        error_msg = f"Error processing national days: {str(e)}"
+        logger.error(f"❌ {error_msg}")
         return [], error_msg

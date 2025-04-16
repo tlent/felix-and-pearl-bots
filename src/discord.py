@@ -1,16 +1,20 @@
-import logging
-
 import requests
 
-from config import env, FELIX, PEARL
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from config import logger, env, FELIX, PEARL
 
 
-def send_discord_message(
-    content: str, webhook_url: str, character_name: str, test_mode: bool = False
+def send_felix_message(content: str, test_mode: bool = False) -> bool:
+    """Send a message as Felix."""
+    return send_message(content, FELIX["name"], env.felix_webhook_url, test_mode)
+
+
+def send_pearl_message(content: str, test_mode: bool = False) -> bool:
+    """Send a message as Pearl."""
+    return send_message(content, PEARL["name"], env.pearl_webhook_url, test_mode)
+
+
+def send_message(
+    content: str, character_name: str, webhook_url: str, test_mode: bool = False
 ) -> bool:
     """
     Send a message to Discord using the provided webhook URL.
@@ -24,34 +28,19 @@ def send_discord_message(
     """
     try:
         if test_mode:
-            logger.info(f"Test mode: Would send {character_name}'s message: {content}")
+            logger.info(f"💬 {character_name} would send: {content}")
             return True
 
         response = requests.post(webhook_url, json={"content": content}, timeout=10)
+        response.raise_for_status()
 
-        if response.status_code == 204:
-            logger.info(f"{character_name}'s message sent successfully")
-            return True
-        else:
-            logger.error(
-                f"Failed to send {character_name}'s message: HTTP {response.status_code}"
-            )
-            return False
+        if env.test_mode:
+            logger.info(f"💬 {character_name}'s message sent successfully")
+        return True
 
-    except Exception as e:
-        logger.error(f"Error sending {character_name}'s message: {str(e)}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Failed to send {character_name}'s message: {str(e)}")
         return False
-
-
-def send_felix_message(content: str, test_mode: bool = False) -> bool:
-    """Send a message using Felix's webhook."""
-    return send_discord_message(
-        content, env.felix_webhook_url, FELIX["name"], test_mode
-    )
-
-
-def send_pearl_message(content: str, test_mode: bool = False) -> bool:
-    """Send a message using Pearl's webhook."""
-    return send_discord_message(
-        content, env.pearl_webhook_url, PEARL["name"], test_mode
-    )
+    except Exception as e:
+        logger.error(f"❌ Error sending {character_name}'s message: {str(e)}")
+        return False
