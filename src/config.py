@@ -1,14 +1,47 @@
 import sys
 import os
 import logging
+import json
 
-# Configure logging once for the entire application
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
-logger = logging.getLogger(__name__)
+
+def setup_logging():
+    """Configure logging for the entire application with AWS Lambda specific formatting."""
+
+    # Create a formatter that includes Lambda request ID when available
+    class LambdaFormatter(logging.Formatter):
+        def format(self, record):
+            # Add Lambda request ID if available
+            if hasattr(record, "aws_request_id"):
+                record.msg = f"[{record.aws_request_id}] {record.msg}"
+
+            # Handle structured logging
+            if isinstance(record.msg, dict):
+                record.msg = json.dumps(record.msg)
+
+            return super().format(record)
+
+    # Configure the root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    # Remove any existing handlers
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    # Create console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(
+        LambdaFormatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+    root_logger.addHandler(console_handler)
+
+    # Create a logger for this module
+    logger = logging.getLogger(__name__)
+    return logger
+
+
+# Initialize logging
+logger = setup_logging()
 
 # Bot names and identities
 FELIX = {

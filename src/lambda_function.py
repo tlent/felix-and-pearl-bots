@@ -23,7 +23,11 @@ def is_test_mode(event: Dict) -> bool:
     """Check if we're in test mode based on event or environment variable."""
     test_mode = env.test_mode or event.get("test_mode", False)
     if test_mode:
-        logger.info("🔍 TEST MODE ENABLED - Additional logging will be shown")
+        logger.info({
+            "event": "test_mode_enabled",
+            "source": "environment" if env.test_mode else "event",
+            "message": "Additional logging will be shown"
+        })
     return test_mode
 
 
@@ -39,21 +43,34 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         Dictionary containing the response with status code and body
     """
     try:
+        # Add request ID to logger if available
+        if context and hasattr(context, "aws_request_id"):
+            logger.aws_request_id = context.aws_request_id
+
         test_mode = is_test_mode(event)
         test_date = event.get("test_date")
 
         if test_mode:
-            logger.info(f"📅 Test date: {test_date if test_date else 'Not specified'}")
+            logger.info({
+                "event": "test_date_set",
+                "test_date": test_date if test_date else "Not specified"
+            })
 
         # Check birthdays
         birthdays = check_birthdays(test_date)
         if test_mode:
-            logger.info(f"🎂 Found {len(birthdays) if birthdays else 0} birthdays to process")
+            logger.info({
+                "event": "birthdays_found",
+                "count": len(birthdays) if birthdays else 0
+            })
 
         if birthdays:
             for birthday in birthdays:
                 if test_mode:
-                    logger.info(f"🎁 Processing birthday for: {birthday['name']}")
+                    logger.info({
+                        "event": "processing_birthday",
+                        "name": birthday["name"]
+                    })
 
                 # Generate and send birthday messages
                 felix_message = generate_felix_birthday_message(birthday)
@@ -61,9 +78,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                 if test_mode:
                     if felix_message:
-                        logger.info("🐱 Felix birthday message generated")
+                        logger.info({"event": "felix_message_generated"})
                     if pearl_message:
-                        logger.info("🐱 Pearl birthday message generated")
+                        logger.info({"event": "pearl_message_generated"})
 
                 if felix_message:
                     send_felix_message(felix_message, test_mode)
@@ -76,9 +93,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                 if test_mode:
                     if felix_thank_you:
-                        logger.info("🐱 Felix thank you message generated")
+                        logger.info({"event": "felix_thank_you_generated"})
                     if pearl_thank_you:
-                        logger.info("🐱 Pearl thank you message generated")
+                        logger.info({"event": "pearl_thank_you_generated"})
 
                 if felix_thank_you:
                     send_felix_message(felix_thank_you, test_mode)
@@ -89,33 +106,45 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         national_days, error = get_national_days()
         if test_mode:
             if national_days:
-                logger.info(f"📅 Found {len(national_days)} national days")
+                logger.info({
+                    "event": "national_days_found",
+                    "count": len(national_days)
+                })
             elif error:
-                logger.error(f"❌ Error getting national days: {error}")
+                logger.error({
+                    "event": "national_days_error",
+                    "error": error
+                })
 
         if national_days and not error:
             message = generate_national_days_message(national_days)
             if message:
                 if test_mode:
-                    logger.info("🐱 National days message generated")
+                    logger.info({"event": "national_days_message_generated"})
                 send_felix_message(message, test_mode)
         elif error:
-            logger.error(f"Error getting national days: {error}")
+            logger.error({
+                "event": "national_days_error",
+                "error": error
+            })
 
         # Get weather
         weather_data = get_weather()
         if test_mode and weather_data:
-            logger.info("🌤️ Weather data retrieved successfully")
+            logger.info({
+                "event": "weather_data_retrieved",
+                "location": env.weather_location
+            })
 
         if weather_data:
             message = generate_weather_message(weather_data)
             if message:
                 if test_mode:
-                    logger.info("🐱 Weather message generated")
+                    logger.info({"event": "weather_message_generated"})
                 send_pearl_message(message, test_mode)
 
         if test_mode:
-            logger.info("✅ All tasks completed successfully")
+            logger.info({"event": "all_tasks_completed"})
 
         return {
             "statusCode": 200,
@@ -124,28 +153,43 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     except KeyError as e:
         error_msg = f"Missing required field in event data: {str(e)}"
-        logger.error(f"❌ {error_msg}")
+        logger.error({
+            "event": "key_error",
+            "error": error_msg,
+            "field": str(e)
+        })
         return {
             "statusCode": 400,
             "body": json.dumps({"error": error_msg}),
         }
     except ValueError as e:
         error_msg = f"Invalid data format: {str(e)}"
-        logger.error(f"❌ {error_msg}")
+        logger.error({
+            "event": "value_error",
+            "error": error_msg
+        })
         return {
             "statusCode": 400,
             "body": json.dumps({"error": error_msg}),
         }
     except requests.exceptions.RequestException as e:
         error_msg = f"External API request failed: {str(e)}"
-        logger.error(f"❌ {error_msg}")
+        logger.error({
+            "event": "request_error",
+            "error": error_msg,
+            "type": type(e).__name__
+        })
         return {
             "statusCode": 502,
             "body": json.dumps({"error": error_msg}),
         }
     except Exception as e:
         error_msg = f"Unexpected error in lambda_handler: {str(e)}"
-        logger.error(f"❌ {error_msg}")
+        logger.error({
+            "event": "unexpected_error",
+            "error": error_msg,
+            "type": type(e).__name__
+        })
         return {
             "statusCode": 500,
             "body": json.dumps({"error": error_msg}),
