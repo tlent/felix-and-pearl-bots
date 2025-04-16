@@ -75,8 +75,8 @@ cd felix-and-pearl-bots
 poetry install
 
 # Configure (copy sample and add your keys)
-cp aws-scripts/example.env.json aws-scripts/env.json
-# Edit aws-scripts/env.json with your API keys and webhook URLs
+cp example.env.json env.json
+# Edit env.json with your API keys and webhook URLs
 
 # Run locally
 ./aws-scripts/invoke-local.sh
@@ -92,7 +92,6 @@ cp aws-scripts/example.env.json aws-scripts/env.json
 ├── aws-scripts/          # AWS deployment and invocation scripts
 │   ├── aws-config.sh     # Common AWS configuration
 │   ├── deploy.sh         # Deployment script
-│   ├── example.env.json  # Example environment configuration
 │   ├── invoke-aws.sh     # AWS Lambda invocation script
 │   └── invoke-local.sh   # Local Lambda invocation script
 ├── src/
@@ -106,6 +105,7 @@ cp aws-scripts/example.env.json aws-scripts/env.json
 │   ├── dst_switch.py       # Timezone, DST, and AWS EventBridge management
 │   ├── lambda_function.py  # AWS Lambda entry point and service coordination
 │   └── prompts.py          # AI prompt templates and personality settings
+├── example.env.json        # Example environment configuration
 ├── pyproject.toml          # Poetry package management
 ├── requirements.txt        # AWS Lambda runtime dependencies
 └── template.yaml           # AWS SAM infrastructure definition
@@ -177,7 +177,7 @@ The project features a robust Daylight Saving Time system that:
 
 3. **Configure Environment:**
 
-   Create `aws-scripts/env.json` based on `aws-scripts/example.env.json` with your credentials and
+   Create `env.json` based on `example.env.json` with your credentials and
    settings:
 
    ```json
