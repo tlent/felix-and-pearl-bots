@@ -43,8 +43,14 @@ def check_birthdays(test_date: Optional[str] = None) -> List[BirthdayInfo]:
                 logger.info(f"🎂 Found birthday for {env.birthdays_config[date_str]}")
             return [{"name": env.birthdays_config[date_str], "date": date_str}]
         return []
+    except ValueError as e:
+        logger.error(f"❌ Invalid date format in check_birthdays: {str(e)}")
+        return []
+    except KeyError as e:
+        logger.error(f"❌ Error accessing birthdays config: {str(e)}")
+        return []
     except Exception as e:
-        logger.error(f"❌ Error checking birthdays: {str(e)}")
+        logger.error(f"❌ Unexpected error in check_birthdays: {str(e)}")
         return []
 
 
@@ -78,8 +84,14 @@ def generate_birthday_message(birthday_info: BirthdayInfo, character: CharacterI
         if env.test_mode:
             logger.info(f"🎁 Generated birthday message for {name}")
         return message
+    except KeyError as e:
+        logger.error(f"❌ Missing required field in birthday_info or character: {str(e)}")
+        return ""
+    except anthropic.APIError as e:
+        logger.error(f"❌ Claude API error generating birthday message: {str(e)}")
+        return ""
     except Exception as e:
-        logger.error(f"❌ Error generating birthday message: {str(e)}")
+        logger.error(f"❌ Unexpected error generating birthday message: {str(e)}")
         return ""
 
 
@@ -103,8 +115,14 @@ def generate_thank_you_message(birthday_info: BirthdayInfo, character: Character
         if env.test_mode:
             logger.info(f"🎁 Generated thank you message for {character['name']}")
         return message
+    except KeyError as e:
+        logger.error(f"❌ Missing required field in character info: {str(e)}")
+        return ""
+    except anthropic.APIError as e:
+        logger.error(f"❌ Claude API error generating thank you message: {str(e)}")
+        return ""
     except Exception as e:
-        logger.error(f"❌ Error generating thank you message: {str(e)}")
+        logger.error(f"❌ Unexpected error generating thank you message: {str(e)}")
         return ""
 
 

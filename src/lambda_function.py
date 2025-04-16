@@ -1,5 +1,6 @@
 import json
 import logging
+import requests
 from typing import Dict, Any
 
 from config import env
@@ -121,9 +122,31 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             "body": json.dumps({"message": "Successfully processed all tasks"}),
         }
 
+    except KeyError as e:
+        error_msg = f"Missing required field in event data: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": error_msg}),
+        }
+    except ValueError as e:
+        error_msg = f"Invalid data format: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": error_msg}),
+        }
+    except requests.exceptions.RequestException as e:
+        error_msg = f"External API request failed: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "statusCode": 502,
+            "body": json.dumps({"error": error_msg}),
+        }
     except Exception as e:
-        logger.error(f"❌ Error in lambda_handler: {str(e)}")
+        error_msg = f"Unexpected error in lambda_handler: {str(e)}"
+        logger.error(f"❌ {error_msg}")
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": str(e)}),
+            "body": json.dumps({"error": error_msg}),
         }

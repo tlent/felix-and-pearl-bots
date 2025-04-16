@@ -1,5 +1,6 @@
 from typing import Optional, TypedDict
 import requests
+import json
 
 from config import logger, env
 
@@ -40,7 +41,10 @@ class WeatherData(TypedDict):
 def get_weather() -> Optional[WeatherData]:
     """
     Get current weather data and daily forecast from OpenWeatherMap API.
-    Returns weather data dictionary or None if there's an error.
+
+    Returns:
+        WeatherData dictionary if successful, None if there's an error.
+        The dictionary contains all weather fields with appropriate default values.
     """
     try:
         response = requests.get(WEATHER_API_URL, timeout=10)
@@ -52,28 +56,28 @@ def get_weather() -> Optional[WeatherData]:
         daily = data.get("daily", [{}])[0]  # Get the first day's forecast
 
         weather_data = {
-            "temp": current.get("temp"),
-            "feels_like": current.get("feels_like"),
-            "humidity": current.get("humidity"),
-            "wind_speed": current.get("wind_speed"),
+            "temp": current.get("temp", 0.0),
+            "feels_like": current.get("feels_like", 0.0),
+            "humidity": current.get("humidity", 0),
+            "wind_speed": current.get("wind_speed", 0.0),
             "description": current.get("weather", [{}])[0].get("description", ""),
-            "pressure": current.get("pressure"),
-            "clouds": current.get("clouds"),
-            "visibility": current.get("visibility"),
-            "wind_gust": current.get("wind_gust", 0),
+            "pressure": current.get("pressure", 0),
+            "clouds": current.get("clouds", 0),
+            "visibility": current.get("visibility", 0),
+            "wind_gust": current.get("wind_gust", 0.0),
             # Full-day forecast
-            "temp_max": daily.get("temp", {}).get("max"),
-            "temp_min": daily.get("temp", {}).get("min"),
+            "temp_max": daily.get("temp", {}).get("max", 0.0),
+            "temp_min": daily.get("temp", {}).get("min", 0.0),
             "morning_weather": daily.get("weather", [{}])[0].get("description", ""),
             "day_weather": daily.get("weather", [{}])[0].get("description", ""),
             "evening_weather": daily.get("weather", [{}])[0].get("description", ""),
             "night_weather": daily.get("weather", [{}])[0].get("description", ""),
-            "pop": daily.get("pop"),  # Probability of precipitation
-            "rain": daily.get("rain", 0),
-            "snow": daily.get("snow", 0),
+            "pop": daily.get("pop", 0.0),  # Probability of precipitation
+            "rain": daily.get("rain", 0.0),
+            "snow": daily.get("snow", 0.0),
             # Sun times
-            "sunrise": daily.get("sunrise"),
-            "sunset": daily.get("sunset"),
+            "sunrise": daily.get("sunrise", 0),
+            "sunset": daily.get("sunset", 0),
         }
 
         if env.test_mode:
@@ -83,6 +87,12 @@ def get_weather() -> Optional[WeatherData]:
     except requests.exceptions.RequestException as e:
         logger.error(f"❌ Failed to fetch weather data: {str(e)}")
         return None
+    except (KeyError, IndexError) as e:
+        logger.error(f"❌ Error parsing weather API response: {str(e)}")
+        return None
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ Invalid JSON response from weather API: {str(e)}")
+        return None
     except Exception as e:
-        logger.error(f"❌ Error processing weather data: {str(e)}")
+        logger.error(f"❌ Unexpected error processing weather data: {str(e)}")
         return None
