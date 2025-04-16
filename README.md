@@ -13,13 +13,13 @@ integration for smart, engaging messaging.
 
 ## 📖 Table of Contents
 
-- [Features](#🚀-features)
-- [Quick Start](#⚡-quick-start)
-- [Project Structure](#📁-project-structure)
-- [Architecture Overview](#🏗️-architecture-overview)
-- [Security & Best Practices](#🔒-security--best-practices)
-- [Development](#🛠️-development)
-- [License](#📄-license)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Architecture Overview](#architecture-overview)
+- [Security & Best Practices](#security--best-practices)
+- [Development](#development)
+- [License](#license)
 
 ---
 
