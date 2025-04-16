@@ -1,33 +1,19 @@
 #!/usr/bin/env bash
+set -e
 
-# Source AWS configuration
 source "$(dirname "$0")/aws-config.sh"
 
 echo "🚀 Deploying Felix & Pearl Bot..."
 echo "----------------------------------------"
 
-# Build the application
 echo "🔨 Building the application..."
-if ! sam build; then
-  echo "❌ Build failed"
-  exit 1
-fi
+sam build
 
-# Get parameter overrides from env.json
-PARAMS=$(jq -r '
-  .FelixPearlBotFunction |
-  to_entries |
-  map("ParameterKey=\(.key),ParameterValue=\(.value|tostring)") |
-  join(" ")
-' env.json)
+echo "📦 Loading parameters from env.json..."
+PARAMS=$(jq -r 'to_entries | map("ParameterKey=\(.key),ParameterValue=\(.value|tostring)") | join(" ")' env.json)
 
-# Deploy the stack
-if ! sam deploy \
+echo "📤 Deploying to AWS..."
+sam deploy \
   --profile "$AWS_PROFILE" \
   --stack-name "$STACK_NAME" \
-  --parameter-overrides "$PARAMS"; then
-  echo "❌ Deployment failed"
-  exit 1
-fi
-
-echo "✅ Deployment completed successfully" 
+  --parameter-overrides "$PARAMS"

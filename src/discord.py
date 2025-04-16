@@ -11,18 +11,18 @@ class WebhookResponse(TypedDict):
     content: str
 
 
-def send_felix_message(content: str, test_mode: bool = False) -> bool:
+def send_felix_message(content: str) -> bool:
     """Send a message as Felix."""
-    return send_message(content, FELIX["name"], env.felix_webhook_url, test_mode)
+    return send_message(content, FELIX["name"], env.felix_webhook_url)
 
 
-def send_pearl_message(content: str, test_mode: bool = False) -> bool:
+def send_pearl_message(content: str) -> bool:
     """Send a message as Pearl."""
-    return send_message(content, PEARL["name"], env.pearl_webhook_url, test_mode)
+    return send_message(content, PEARL["name"], env.pearl_webhook_url)
 
 
 def send_message(
-    content: str, character_name: str, webhook_url: str, test_mode: bool = False
+    content: str, character_name: str, webhook_url: str
 ) -> bool:
     """
     Send a message to Discord using the provided webhook URL.
@@ -32,18 +32,12 @@ def send_message(
         content: The message content to send
         webhook_url: The Discord webhook URL to use
         character_name: The name of the character sending the message (for logging)
-        test_mode: Whether we're in test mode
     """
     try:
-        if test_mode:
-            logger.info(f"💬 {character_name} would send: {content}")
-            return True
-
         response = requests.post(webhook_url, json=WebhookResponse(content=content), timeout=10)
         response.raise_for_status()
 
-        if env.test_mode:
-            logger.info(f"💬 {character_name}'s message sent successfully")
+        logger.info(f"💬 {character_name}'s message sent successfully")
         return True
 
     except requests.exceptions.RequestException as e:

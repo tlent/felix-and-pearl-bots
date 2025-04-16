@@ -4,34 +4,41 @@ Transform: AWS::Serverless-2016-10-31
 Description: FelixPearlBot
 
 Parameters:
-  FELIX_DISCORD_WEBHOOK_URL:
+  felixDiscordWebhookUrl:
     Type: String
     Description: felix-discord-webhook
     NoEcho: true
-  PEARL_DISCORD_WEBHOOK_URL:
+  pearlDiscordWebhookUrl:
     Type: String
     Description: pearl-discord-webhook
     NoEcho: true
-  ANTHROPIC_API_KEY:
+  anthropicApiKey:
     Type: String
     Description: anthropic-api-key
     NoEcho: true
-  WEATHER_API_KEY:
+  weatherApiKey:
     Type: String
     Description: weather-api-key
     NoEcho: true
-  WEATHER_LOCATION:
+  weatherLocation:
     Type: String
     Description: weather-location
-  WEATHER_LAT:
+    NoEcho: true
+  weatherLat:
     Type: String
     Description: weather-latitude
-  WEATHER_LON:
+    NoEcho: true
+  weatherLon:
     Type: String
     Description: weather-longitude
-  BIRTHDAYS_CONFIG:
+    NoEcho: true
+  birthdaysConfig:
     Type: String
     Description: birthdays-json-config
+    NoEcho: true
+  tz:
+    Type: String
+    Description: timezone
     NoEcho: true
 
 Resources:
@@ -45,16 +52,15 @@ Resources:
       MemorySize: 512
       Environment:
         Variables:
-          ANTHROPIC_API_KEY: !Ref ANTHROPIC_API_KEY
-          FELIX_DISCORD_WEBHOOK_URL: !Ref FELIX_DISCORD_WEBHOOK_URL
-          PEARL_DISCORD_WEBHOOK_URL: !Ref PEARL_DISCORD_WEBHOOK_URL
-          WEATHER_API_KEY: !Ref WEATHER_API_KEY
-          WEATHER_LOCATION: !Ref WEATHER_LOCATION
-          WEATHER_LAT: !Ref WEATHER_LAT
-          WEATHER_LON: !Ref WEATHER_LON
-          BIRTHDAYS_CONFIG: !Ref BIRTHDAYS_CONFIG
-          TEST_MODE: "false"
-          TZ: "America/New_York"
+          ANTHROPIC_API_KEY: !Ref anthropicApiKey
+          FELIX_DISCORD_WEBHOOK_URL: !Ref felixDiscordWebhookUrl
+          PEARL_DISCORD_WEBHOOK_URL: !Ref pearlDiscordWebhookUrl
+          WEATHER_API_KEY: !Ref weatherApiKey
+          WEATHER_LOCATION: !Ref weatherLocation
+          WEATHER_LAT: !Ref weatherLat
+          WEATHER_LON: !Ref weatherLon
+          BIRTHDAYS_CONFIG: !Ref birthdaysConfig
+          TZ: !Ref tz
       Policies:
         - AWSLambdaBasicExecutionRole
       Events:
@@ -111,7 +117,7 @@ Resources:
       Role: !GetAtt DSTSwitchRole.Arn
       Environment:
         Variables:
-          TZ: "America/New_York"
+          TZ: !Ref tz
       Events:
         DSTCheck:
           Type: Schedule

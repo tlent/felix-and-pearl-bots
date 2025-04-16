@@ -191,8 +191,7 @@ The project features a robust Daylight Saving Time system that:
        "WEATHER_LAT": 0.0,
        "WEATHER_LON": 0.0,
        "BIRTHDAYS_CONFIG": "MM-DD:Name,MM-DD:Name",
-       "TZ": "America/New_York",
-       "TEST_MODE": true
+       "TZ": "America/New_York"
      }
    }
    ```

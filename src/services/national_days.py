@@ -6,8 +6,6 @@ import pytz
 import requests
 from bs4 import BeautifulSoup
 
-from config import env
-
 logger = logging.getLogger(__name__)
 
 
@@ -45,8 +43,7 @@ def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
 
     # Construct URL
     url = f"https://www.nationaldaycalendar.com/{month}/{month}-{day}"
-    if env.test_mode:
-        logger.info(f"📅 Fetching national days from: {url}")
+    logger.info(f"📅 Fetching national days from: {url}")
 
     # Make request with proper headers
     headers = {
@@ -66,8 +63,7 @@ def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
 
         # Find all national day cards
         cards = soup.select(".m-card--header a")
-        if env.test_mode:
-            logger.info(f"📅 Found {len(cards)} total cards")
+        logger.info(f"📅 Found {len(cards)} total cards")
 
         for card in cards:
             name = card.text.strip()

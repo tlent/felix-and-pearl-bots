@@ -94,10 +94,9 @@ def generate_weather_message(weather_data: Dict) -> Optional[str]:
             "sunset": sunset_dt.strftime("%I:%M %p"),
         }
 
-        if env.test_mode:
-            logger.info("🌤️ Weather data being sent to AI:")
-            for key, value in formatted_data.items():
-                logger.info(f"  {key}: {value}")
+        logger.info("🌤️ Weather data being sent to AI:")
+        for key, value in formatted_data.items():
+            logger.info(f"  {key}: {value}")
 
         prompt = WEATHER_PROMPT.format(**formatted_data)
         return generate_message_with_claude(prompt, PEARL)

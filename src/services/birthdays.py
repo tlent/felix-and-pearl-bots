@@ -38,12 +38,10 @@ def check_birthdays(test_date: Optional[str] = None) -> List[BirthdayInfo]:
     try:
         date_str = test_date or datetime.now().strftime("%m-%d")
 
-        if env.test_mode:
-            logger.info(f"📅 Checking birthdays for date: {date_str}")
+        logger.info(f"📅 Checking birthdays for date: {date_str}")
 
         if date_str in env.birthdays_config:
-            if env.test_mode:
-                logger.info(f"🎂 Found birthday for {env.birthdays_config[date_str]}")
+            logger.info(f"🎂 Found birthday for {env.birthdays_config[date_str]}")
             return [{"name": env.birthdays_config[date_str], "date": date_str}]
         return []
     except ValueError as e:
@@ -84,8 +82,7 @@ def generate_birthday_message(birthday_info: BirthdayInfo, character: CharacterI
             )
 
         message = generate_message_with_claude(prompt, character)
-        if env.test_mode:
-            logger.info(f"🎁 Generated birthday message for {name}")
+        logger.info(f"🎁 Generated birthday message for {name}")
         return message
     except KeyError as e:
         logger.error(f"❌ Missing required field in birthday_info or character: {str(e)}")
@@ -115,8 +112,7 @@ def generate_thank_you_message(birthday_info: BirthdayInfo, character: Character
         )
 
         message = generate_message_with_claude(prompt, character)
-        if env.test_mode:
-            logger.info(f"🎁 Generated thank you message for {character['name']}")
+        logger.info(f"🎁 Generated thank you message for {character['name']}")
         return message
     except KeyError as e:
         logger.error(f"❌ Missing required field in character info: {str(e)}")

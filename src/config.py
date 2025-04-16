@@ -123,7 +123,7 @@ def parse_birthdays_config(birthdays_str: str) -> dict:
 
     except Exception as e:
         raise ValueError(
-            f"Error parsing BIRTHDAYS_CONFIG: {str(e)}. " "Format should be 'MM-DD:Name,MM-DD:Name'"
+            f"Error parsing BIRTHDAYS-CONFIG: {str(e)}. " "Format should be 'MM-DD:Name,MM-DD:Name'"
         ) from e
 
     return birthdays_config
@@ -131,7 +131,6 @@ def parse_birthdays_config(birthdays_str: str) -> dict:
 
 class EnvConfig:
     def __init__(self):
-        self.test_mode = get_env_var("TEST_MODE")
         self.felix_webhook_url = get_env_var("FELIX_DISCORD_WEBHOOK_URL")
         self.pearl_webhook_url = get_env_var("PEARL_DISCORD_WEBHOOK_URL")
         self.anthropic_api_key = get_env_var("ANTHROPIC_API_KEY")

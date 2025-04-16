@@ -20,18 +20,6 @@ initialize()
 logger = logging.getLogger(__name__)
 
 
-def is_test_mode(event: Dict) -> bool:
-    """Check if we're in test mode based on event or environment variable."""
-    test_mode = env.test_mode or event.get("test_mode", False)
-    if test_mode:
-        logger.info({
-            "event": "test_mode_enabled",
-            "source": "environment" if env.test_mode else "event",
-            "message": "Additional logging will be shown"
-        })
-    return test_mode
-
-
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Main Lambda handler function.
@@ -48,81 +36,73 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if context and hasattr(context, "aws_request_id"):
             logger.aws_request_id = context.aws_request_id
 
-        test_mode = is_test_mode(event)
         test_date = event.get("test_date")
 
-        if test_mode:
+        if test_date:
             logger.info({
                 "event": "test_date_set",
-                "test_date": test_date if test_date else "Not specified"
+                "test_date": test_date
             })
 
         # Check birthdays
         birthdays = check_birthdays(test_date)
-        if test_mode:
-            logger.info({
-                "event": "birthdays_found",
-                "count": len(birthdays) if birthdays else 0
-            })
+        logger.info({
+            "event": "birthday_check",
+            "count": len(birthdays) if birthdays else 0
+        })
 
         if birthdays:
             for birthday in birthdays:
-                if test_mode:
-                    logger.info({
-                        "event": "processing_birthday",
-                        "name": birthday["name"]
-                    })
+                logger.info({
+                    "event": "processing_birthday",
+                    "name": birthday["name"]
+                })
 
                 # Generate and send birthday messages
                 felix_message = generate_felix_birthday_message(birthday)
-                pearl_message = generate_pearl_birthday_message(birthday)
+                if felix_message:
+                    logger.info({"event": "felix_message_generated"})
 
-                if test_mode:
-                    if felix_message:
-                        logger.info({"event": "felix_message_generated"})
-                    if pearl_message:
-                        logger.info({"event": "pearl_message_generated"})
+                pearl_message = generate_pearl_birthday_message(birthday)
+                if pearl_message:
+                    logger.info({"event": "pearl_message_generated"})
 
                 if felix_message:
-                    send_felix_message(felix_message, test_mode)
+                    send_felix_message(felix_message)
                 if pearl_message:
-                    send_pearl_message(pearl_message, test_mode)
+                    send_pearl_message(pearl_message)
 
                 # Generate and send thank you messages
                 felix_thank_you = generate_felix_thank_you_message(birthday)
+                if felix_thank_you:
+                    logger.info({"event": "felix_thank_you_generated"})
                 pearl_thank_you = generate_pearl_thank_you_message(birthday)
-
-                if test_mode:
-                    if felix_thank_you:
-                        logger.info({"event": "felix_thank_you_generated"})
-                    if pearl_thank_you:
-                        logger.info({"event": "pearl_thank_you_generated"})
+                if pearl_thank_you:
+                    logger.info({"event": "pearl_thank_you_generated"})
 
                 if felix_thank_you:
-                    send_felix_message(felix_thank_you, test_mode)
+                    send_felix_message(felix_thank_you)
                 if pearl_thank_you:
-                    send_pearl_message(pearl_thank_you, test_mode)
+                    send_pearl_message(pearl_thank_you)
 
         # Get national days
         national_days, error = get_national_days()
-        if test_mode:
-            if national_days:
-                logger.info({
-                    "event": "national_days_found",
-                    "count": len(national_days)
-                })
-            elif error:
-                logger.error({
-                    "event": "national_days_error",
-                    "error": error
-                })
+        if national_days:
+            logger.info({
+                "event": "national_days_found",
+                "count": len(national_days)
+            })
+        elif error:
+            logger.error({
+                "event": "national_days_error",
+                "error": error
+            })
 
         if national_days and not error:
             message = generate_national_days_message(national_days)
             if message:
-                if test_mode:
-                    logger.info({"event": "national_days_message_generated"})
-                send_felix_message(message, test_mode)
+                logger.info({"event": "national_days_message_generated"})
+                send_felix_message(message)
         elif error:
             logger.error({
                 "event": "national_days_error",
@@ -131,7 +111,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         # Get weather
         weather_data = get_weather()
-        if test_mode and weather_data:
+        if weather_data:
             logger.info({
                 "event": "weather_data_retrieved",
                 "location": env.weather_location
@@ -140,12 +120,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if weather_data:
             message = generate_weather_message(weather_data)
             if message:
-                if test_mode:
-                    logger.info({"event": "weather_message_generated"})
-                send_pearl_message(message, test_mode)
+                logger.info({"event": "weather_message_generated"})
+                send_pearl_message(message)
 
-        if test_mode:
-            logger.info({"event": "all_tasks_completed"})
+        logger.info({"event": "all_tasks_completed"})
 
         return {
             "statusCode": 200,

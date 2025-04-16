@@ -67,11 +67,10 @@ def get_weather() -> Optional[WeatherData]:
         sunrise_local = sunrise_utc.astimezone(ny_tz)
         sunset_local = sunset_utc.astimezone(ny_tz)
 
-        if env.test_mode:
-            logger.info(f"🌅 Sunrise UTC: {sunrise_utc.strftime('%H:%M %Z')}")
-            logger.info(f"🌅 Sunrise Local: {sunrise_local.strftime('%H:%M %Z')}")
-            logger.info(f"🌇 Sunset UTC: {sunset_utc.strftime('%H:%M %Z')}")
-            logger.info(f"🌇 Sunset Local: {sunset_local.strftime('%H:%M %Z')}")
+        logger.info(f"🌅 Sunrise UTC: {sunrise_utc.strftime('%H:%M %Z')}")
+        logger.info(f"🌅 Sunrise Local: {sunrise_local.strftime('%H:%M %Z')}")
+        logger.info(f"🌇 Sunset UTC: {sunset_utc.strftime('%H:%M %Z')}")
+        logger.info(f"🌇 Sunset Local: {sunset_local.strftime('%H:%M %Z')}")
 
         weather_data = {
             "temp": current.get("temp", 0.0),
@@ -98,8 +97,7 @@ def get_weather() -> Optional[WeatherData]:
             "sunset": int(sunset_local.timestamp()),
         }
 
-        if env.test_mode:
-            logger.info("🌤️ Successfully fetched weather data")
+        logger.info("🌤️ Successfully fetched weather data")
         return weather_data
 
     except requests.exceptions.RequestException as e:
