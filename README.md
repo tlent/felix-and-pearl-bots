@@ -1,5 +1,10 @@
 # Felix & Pearl Bot 🐱🌤️
 
+[![Python Version](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![AWS Serverless](https://img.shields.io/badge/AWS-Serverless-orange.svg)](https://aws.amazon.com/serverless/)
+[![Discord](https://img.shields.io/badge/Discord-Bot-blue.svg)](https://discord.com)
+
 An AI-powered, zero-maintenance Discord bot duo delivering daily national day
 highlights and weather updates from the unique perspective of two witty feline
 personas. Built on a robust serverless architecture using AWS Lambda, it
@@ -9,6 +14,7 @@ integration for smart, engaging messaging.
 ## 📖 Table of Contents
 
 - [Features](#🚀-features)
+- [Quick Start](#⚡-quick-start)
 - [Project Structure](#📁-project-structure)
 - [Architecture Overview](#🏗️-architecture-overview)
 - [Security & Best Practices](#🔒-security--best-practices)
@@ -51,6 +57,25 @@ integration for smart, engaging messaging.
 - **Secure Configuration:**  
   Manages sensitive data using AWS Parameter Store, ensuring secure and
   centralized configuration.
+
+## ⚡ Quick Start
+
+```bash
+# Clone and install
+git clone https://github.com/yourusername/felix-and-pearl-bots.git
+cd felix-and-pearl-bots
+poetry install
+
+# Configure (copy sample and add your keys)
+cp env.json.sample env.json
+# Edit env.json with your API keys and webhook URLs
+
+# Run locally
+sam build && sam local invoke FelixPearlBotFunction --env-vars env.json
+
+# Deploy to AWS
+sam build && sam deploy --guided
+```
 
 ## 📁 Project Structure
 
