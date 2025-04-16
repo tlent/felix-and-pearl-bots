@@ -16,12 +16,22 @@ claude = anthropic.Anthropic(api_key=env.anthropic_api_key)
 
 
 class BirthdayInfo(TypedDict):
+    """Information about a birthday."""
+
     name: str
     date: str
 
 
 def check_birthdays(test_date: Optional[str] = None) -> List[BirthdayInfo]:
-    """Check if today is anyone's birthday."""
+    """
+    Check if today is anyone's birthday.
+
+    Args:
+        test_date: Optional date string in MM-DD format for testing
+
+    Returns:
+        List of BirthdayInfo objects for today's birthdays
+    """
     try:
         date_str = test_date or datetime.now().strftime("%m-%d")
 
@@ -41,9 +51,13 @@ def check_birthdays(test_date: Optional[str] = None) -> List[BirthdayInfo]:
 def generate_birthday_message(birthday_info: BirthdayInfo, character: CharacterInfo) -> str:
     """
     Generate a birthday message using Claude.
+
     Args:
-        birthday_info: Dictionary containing birthday information
-        character: Dictionary containing character information
+        birthday_info: Information about the birthday
+        character: Character information for message generation
+
+    Returns:
+        Generated birthday message or empty string if there's an error
     """
     try:
         name = birthday_info["name"]
@@ -72,9 +86,13 @@ def generate_birthday_message(birthday_info: BirthdayInfo, character: CharacterI
 def generate_thank_you_message(birthday_info: BirthdayInfo, character: CharacterInfo) -> str:
     """
     Generate a thank you message for birthday wishes.
+
     Args:
-        birthday_info: Dictionary containing birthday information
-        character: Dictionary containing character information
+        birthday_info: Information about the birthday
+        character: Character information for message generation
+
+    Returns:
+        Generated thank you message or empty string if there's an error
     """
     try:
         prompt = THANK_YOU_PROMPT.format(

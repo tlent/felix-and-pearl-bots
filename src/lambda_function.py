@@ -15,8 +15,6 @@ from services.birthdays import (
 from services.national_days import get_national_days
 from services.weather import get_weather
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

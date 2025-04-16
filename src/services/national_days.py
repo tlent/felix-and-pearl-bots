@@ -12,6 +12,14 @@ class NationalDay:
     """Represents a national day with its name, URL, and optional occurrence text."""
 
     def __init__(self, name: str, url: str, occurrence_text: Optional[str] = None):
+        """
+        Initialize a NationalDay instance.
+
+        Args:
+            name: Name of the national day
+            url: URL to the national day's page
+            occurrence_text: Optional text describing when the day occurs
+        """
         self.name = name
         self.url = url
         self.occurrence_text = occurrence_text
@@ -20,7 +28,11 @@ class NationalDay:
 def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
     """
     Scrapes national days from nationaldaycalendar.com.
-    Returns a tuple of (list of national days, error message if any).
+
+    Returns:
+        Tuple containing:
+        - List of NationalDay objects for today's national days
+        - Error message if any, otherwise None
     """
     try:
         # Get current date in Eastern Time
