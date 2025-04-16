@@ -36,9 +36,13 @@ Parameters:
     Type: String
     Description: birthdays-json-config
     NoEcho: true
-  tz:
+  felixPearlTz:
     Type: String
-    Description: timezone
+    Description: felix-pearl-timezone
+    NoEcho: true
+  dstSwitchTz:
+    Type: String
+    Description: dst-switch-timezone
     NoEcho: true
 
 Resources:
@@ -60,7 +64,7 @@ Resources:
           WEATHER_LAT: !Ref weatherLat
           WEATHER_LON: !Ref weatherLon
           BIRTHDAYS_CONFIG: !Ref birthdaysConfig
-          TZ: !Ref tz
+          TZ: !Ref felixPearlTz
       Policies:
         - AWSLambdaBasicExecutionRole
       Events:
@@ -117,7 +121,7 @@ Resources:
       Role: !GetAtt DSTSwitchRole.Arn
       Environment:
         Variables:
-          TZ: !Ref tz
+          TZ: !Ref dstSwitchTz
       Events:
         DSTCheck:
           Type: Schedule

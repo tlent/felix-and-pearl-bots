@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-set -e
 
-source "$(dirname "$0")/aws-config.sh"
+# Source AWS configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/aws-config.sh"
 
-echo "🚀 Deploying Felix & Pearl Bot..."
-echo "----------------------------------------"
-
-echo "🔨 Building the application..."
 sam build
 
-echo "📦 Loading parameters from env.json..."
-PARAMS=$(jq -r 'to_entries | map("ParameterKey=\(.key),ParameterValue=\(.value|tostring)") | join(" ")' env.json)
+# Extract parameters from env.json
+PARAMS=$(jq -r '
+  to_entries
+  | map(
+      .value
+      | to_entries
+      | map("ParameterKey=\(.key),ParameterValue=\(.value|tostring)")
+    )
+  | flatten
+  | join(" ")
+' env.json)
 
-echo "📤 Deploying to AWS..."
 sam deploy \
-  --profile "$AWS_PROFILE" \
-  --stack-name "$STACK_NAME" \
-  --parameter-overrides "$PARAMS"
+  --profile "${AWS_PROFILE}" \
+  --stack-name "${STACK_NAME}" \
+  --parameter-overrides "${PARAMS}"

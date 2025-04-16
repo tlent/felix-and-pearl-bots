@@ -59,8 +59,9 @@ integration for smart, engaging messaging.
   centralized configuration.
 
 - **Structured Logging:**  
-  Implements comprehensive structured logging with AWS Lambda request ID tracking,
-  enabling better observability and debugging across all bot operations.
+  Implements comprehensive structured logging with AWS Lambda request ID
+  tracking, enabling better observability and debugging across all bot
+  operations.
 
 - **Streamlined Deployment:**  
   Features a simplified deployment process with AWS SAM, making it easy to
@@ -183,14 +184,17 @@ The project features a robust Daylight Saving Time system that:
    ```json
    {
      "FelixPearlBotFunction": {
-       "FELIX_DISCORD_WEBHOOK_URL": "your-felix-webhook-url",
-       "PEARL_DISCORD_WEBHOOK_URL": "your-pearl-webhook-url",
-       "ANTHROPIC_API_KEY": "your-claude-api-key",
-       "WEATHER_API_KEY": "your-openweathermap-key",
-       "WEATHER_LOCATION": "City,State,Country",
-       "WEATHER_LAT": 0.0,
-       "WEATHER_LON": 0.0,
-       "BIRTHDAYS_CONFIG": "MM-DD:Name,MM-DD:Name",
+       "anthropicApiKey": "your-claude-api-key",
+       "felixDiscordWebhookUrl": "your-felix-webhook-url",
+       "pearlDiscordWebhookUrl": "your-pearl-webhook-url",
+       "weatherApiKey": "your-openweathermap-key",
+       "weatherLocation": "City,State,Country",
+       "weatherLat": "0.0",
+       "weatherLon": "0.0",
+       "birthdaysConfig": "MM-DD:Name,MM-DD:Name",
+       "tz": "America/New_York"
+     },
+     "DSTSwitchFunction": {
        "TZ": "America/New_York"
      }
    }
@@ -201,7 +205,7 @@ The project features a robust Daylight Saving Time system that:
    ```bash
    # AWS profile to use for deployments and invocations
    AWS_PROFILE="your-aws-profile-name"
-   
+
    # Name of the CloudFormation stack
    STACK_NAME="felix-pearl-bot"
    ```
@@ -236,4 +240,5 @@ The deployment process automatically handles:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
+for details.
