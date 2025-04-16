@@ -3,8 +3,12 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, Any
 from zoneinfo import ZoneInfo
+import logging
 
-from config import logger
+from config import initialize
+
+initialize()
+logger = logging.getLogger(__name__)
 
 
 def get_current_time() -> datetime:

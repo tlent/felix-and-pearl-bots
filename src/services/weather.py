@@ -1,11 +1,13 @@
+import logging
 from typing import Optional, TypedDict
 import requests
 import json
 from datetime import datetime
 import pytz
 
-from config import logger, env
+from config import env
 
+logger = logging.getLogger(__name__)
 
 # Weather API configuration
 WEATHER_API_KEY = env.weather_api_key

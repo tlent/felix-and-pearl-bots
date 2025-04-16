@@ -4,6 +4,10 @@ import logging
 import json
 
 
+def initialize():
+    setup_logging()
+
+
 def setup_logging():
     """Configure logging for the entire application with AWS Lambda specific formatting."""
 
@@ -35,13 +39,9 @@ def setup_logging():
     )
     root_logger.addHandler(console_handler)
 
-    # Create a logger for this module
-    logger = logging.getLogger(__name__)
-    return logger
-
 
 # Initialize logging
-logger = setup_logging()
+setup_logging()
 
 # Bot names and identities
 FELIX = {
@@ -131,14 +131,14 @@ def parse_birthdays_config(birthdays_str: str) -> dict:
 
 class EnvConfig:
     def __init__(self):
-        self.test_mode = get_env_var("TEST_MODE").lower() == "true"
+        self.test_mode = get_env_var("TEST_MODE")
         self.felix_webhook_url = get_env_var("FELIX_DISCORD_WEBHOOK_URL")
         self.pearl_webhook_url = get_env_var("PEARL_DISCORD_WEBHOOK_URL")
         self.anthropic_api_key = get_env_var("ANTHROPIC_API_KEY")
         self.weather_api_key = get_env_var("WEATHER_API_KEY")
         self.weather_location = get_env_var("WEATHER_LOCATION")
-        self.weather_lat = float(get_env_var("WEATHER_LAT"))
-        self.weather_lon = float(get_env_var("WEATHER_LON"))
+        self.weather_lat = get_env_var("WEATHER_LAT")
+        self.weather_lon = get_env_var("WEATHER_LON")
 
         # Parse birthdays from simple format: "MM-DD:Name,MM-DD:Name"
         birthdays_str = get_env_var("BIRTHDAYS_CONFIG")

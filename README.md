@@ -75,20 +75,26 @@ cd felix-and-pearl-bots
 poetry install
 
 # Configure (copy sample and add your keys)
-cp env.json.sample env.json
-# Edit env.json with your API keys and webhook URLs
+cp aws-scripts/example.env.json aws-scripts/env.json
+# Edit aws-scripts/env.json with your API keys and webhook URLs
 
 # Run locally
-sam build && sam local invoke FelixPearlBotFunction --env-vars env.json
+./aws-scripts/invoke-local.sh
 
 # Deploy to AWS
-sam build && sam deploy --guided
+./aws-scripts/deploy.sh
 ```
 
 ## 📁 Project Structure
 
 ```text
 .
+├── aws-scripts/          # AWS deployment and invocation scripts
+│   ├── aws-config.sh     # Common AWS configuration
+│   ├── deploy.sh         # Deployment script
+│   ├── example.env.json  # Example environment configuration
+│   ├── invoke-aws.sh     # AWS Lambda invocation script
+│   └── invoke-local.sh   # Local Lambda invocation script
 ├── src/
 │   ├── services/            # Core service modules for bot features
 │   │   ├── birthdays.py     # Birthday detection and AI-powered message generation
@@ -100,7 +106,6 @@ sam build && sam deploy --guided
 │   ├── dst_switch.py       # Timezone, DST, and AWS EventBridge management
 │   ├── lambda_function.py  # AWS Lambda entry point and service coordination
 │   └── prompts.py          # AI prompt templates and personality settings
-├── env.json                # Local environment variables and secrets
 ├── pyproject.toml          # Poetry package management
 ├── requirements.txt        # AWS Lambda runtime dependencies
 └── template.yaml           # AWS SAM infrastructure definition
@@ -172,7 +177,7 @@ The project features a robust Daylight Saving Time system that:
 
 3. **Configure Environment:**
 
-   Create `env.json` based on `env.json.sample` with your credentials and
+   Create `aws-scripts/env.json` based on `aws-scripts/example.env.json` with your credentials and
    settings:
 
    ```json
@@ -183,13 +188,23 @@ The project features a robust Daylight Saving Time system that:
        "ANTHROPIC_API_KEY": "your-claude-api-key",
        "WEATHER_API_KEY": "your-openweathermap-key",
        "WEATHER_LOCATION": "City,State,Country",
-       "WEATHER_LAT": "latitude",
-       "WEATHER_LON": "longitude",
+       "WEATHER_LAT": 0.0,
+       "WEATHER_LON": 0.0,
        "BIRTHDAYS_CONFIG": "MM-DD:Name,MM-DD:Name",
        "TZ": "America/New_York",
-       "TEST_MODE": "true"
+       "TEST_MODE": true
      }
    }
+   ```
+
+   Configure your AWS settings in `aws-scripts/aws-config.sh`:
+
+   ```bash
+   # AWS profile to use for deployments and invocations
+   AWS_PROFILE="your-aws-profile-name"
+   
+   # Name of the CloudFormation stack
+   STACK_NAME="felix-pearl-bot"
    ```
 
 4. **Run Locally:**
@@ -197,19 +212,19 @@ The project features a robust Daylight Saving Time system that:
    Test the bot locally using the following:
 
    ```bash
-   sam build && sam local invoke FelixPearlBotFunction --env-vars env.json
+   ./aws-scripts/invoke-local.sh
    ```
 
 ### Deployment
 
-The project uses AWS SAM for streamlined deployment:
+The project uses AWS SAM for streamlined deployment with helper scripts:
 
 ```bash
-# Build and deploy
-sam build && sam deploy --guided
+# Deploy to AWS
+./aws-scripts/deploy.sh
 
-# For subsequent deployments
-sam build && sam deploy
+# Invoke the deployed function manually
+./aws-scripts/invoke-aws.sh
 ```
 
 The deployment process automatically handles:

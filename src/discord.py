@@ -1,7 +1,10 @@
 import requests
 from typing import TypedDict
+import logging
 
-from config import logger, env, FELIX, PEARL
+from config import env, FELIX, PEARL
+
+logger = logging.getLogger(__name__)
 
 
 class WebhookResponse(TypedDict):

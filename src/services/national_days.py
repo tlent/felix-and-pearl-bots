@@ -1,11 +1,14 @@
 from datetime import datetime
 from typing import List, Optional, Tuple
+import logging
 
 import pytz
 import requests
 from bs4 import BeautifulSoup
 
-from config import logger, env
+from config import env
+
+logger = logging.getLogger(__name__)
 
 
 class NationalDay:

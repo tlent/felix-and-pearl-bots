@@ -3,7 +3,7 @@ import logging
 import requests
 from typing import Dict, Any
 
-from config import env
+from config import env, initialize
 from ai import generate_national_days_message, generate_weather_message
 from discord import send_felix_message, send_pearl_message
 from services.birthdays import (
@@ -16,6 +16,7 @@ from services.birthdays import (
 from services.national_days import get_national_days
 from services.weather import get_weather
 
+initialize()
 logger = logging.getLogger(__name__)
 
 

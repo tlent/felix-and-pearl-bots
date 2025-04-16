@@ -1,7 +1,7 @@
-import logging
 from typing import Dict, List, Optional, TypedDict
 import pytz
 from datetime import datetime
+import logging
 
 import anthropic
 
@@ -12,7 +12,6 @@ from prompts import (
 )
 from services.national_days import NationalDay
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
 # Initialize Anthropic client

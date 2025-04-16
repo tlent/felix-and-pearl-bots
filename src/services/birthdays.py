@@ -1,15 +1,18 @@
 from datetime import datetime
 from typing import List, Optional, TypedDict
-
+import logging
 import anthropic
 
-from config import env, logger, FELIX, PEARL
+from config import env, FELIX, PEARL
 from prompts import (
     OWN_BIRTHDAY_PROMPT,
     OTHER_BIRTHDAY_PROMPT,
     THANK_YOU_PROMPT,
 )
 from ai import generate_message_with_claude, CharacterInfo
+
+
+logger = logging.getLogger(__name__)
 
 # Initialize Anthropic client
 claude = anthropic.Anthropic(api_key=env.anthropic_api_key)
