@@ -1,14 +1,17 @@
-import boto3
 import json
-from datetime import datetime, timedelta
-from typing import Dict, Any
-from zoneinfo import ZoneInfo
 import logging
+from datetime import datetime, timedelta
+from typing import Any
+from zoneinfo import ZoneInfo
 
-from config import initialize
+import boto3
+import boto3.exceptions
 
-initialize()
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+MARCH = 3
+NOVEMBER = 11
 
 
 def get_current_time() -> datetime:
@@ -26,15 +29,15 @@ def is_dst_change_day() -> bool:
     now = get_current_time()
 
     # Check for spring forward (second Sunday in March)
-    if now.month == 3:
-        first_day = datetime(now.year, 3, 1, tzinfo=ZoneInfo("America/New_York"))
+    if now.month == MARCH:
+        first_day = datetime(now.year, MARCH, 1, tzinfo=ZoneInfo("America/New_York"))
         days_until_sunday = (6 - first_day.weekday()) % 7
         second_sunday = first_day + timedelta(days=days_until_sunday + 7)
         return now.date() == second_sunday.date()
 
     # Check for fall back (first Sunday in November)
-    if now.month == 11:
-        first_day = datetime(now.year, 11, 1, tzinfo=ZoneInfo("America/New_York"))
+    if now.month == NOVEMBER:
+        first_day = datetime(now.year, NOVEMBER, 1, tzinfo=ZoneInfo("America/New_York"))
         days_until_sunday = (6 - first_day.weekday()) % 7
         first_sunday = first_day + timedelta(days=days_until_sunday)
         return now.date() == first_sunday.date()
@@ -48,37 +51,44 @@ def update_lambda_schedule(is_dst: bool) -> None:
 
     Args:
         is_dst: Whether we're in Daylight Saving Time
+
+    Raises:
+        boto3.exceptions.Boto3Error: If the schedule update fails
     """
-    events_client = boto3.client("events")
+    try:
+        events_client = boto3.client("events")
 
-    # Update the schedule rules
-    if is_dst:
-        # EDT schedule (7 AM EDT)
-        events_client.put_rule(
-            Name="DailyScheduleEDT",
-            ScheduleExpression="cron(0 11 * * ? *)",
-            State="ENABLED",
-        )
-        events_client.put_rule(
-            Name="DailyScheduleEST",
-            ScheduleExpression="cron(0 12 * * ? *)",
-            State="DISABLED",
-        )
-    else:
-        # EST schedule (7 AM EST)
-        events_client.put_rule(
-            Name="DailyScheduleEDT",
-            ScheduleExpression="cron(0 11 * * ? *)",
-            State="DISABLED",
-        )
-        events_client.put_rule(
-            Name="DailyScheduleEST",
-            ScheduleExpression="cron(0 12 * * ? *)",
-            State="ENABLED",
-        )
+        # Update the schedule rules
+        if is_dst:
+            # EDT schedule (7 AM EDT)
+            events_client.put_rule(
+                Name="DailyScheduleEDT",
+                ScheduleExpression="cron(0 11 * * ? *)",
+                State="ENABLED",
+            )
+            events_client.put_rule(
+                Name="DailyScheduleEST",
+                ScheduleExpression="cron(0 12 * * ? *)",
+                State="DISABLED",
+            )
+        else:
+            # EST schedule (7 AM EST)
+            events_client.put_rule(
+                Name="DailyScheduleEDT",
+                ScheduleExpression="cron(0 11 * * ? *)",
+                State="DISABLED",
+            )
+            events_client.put_rule(
+                Name="DailyScheduleEST",
+                ScheduleExpression="cron(0 12 * * ? *)",
+                State="ENABLED",
+            )
+    except boto3.exceptions.Boto3Error as e:
+        logger.error(f"Failed to update Lambda schedule: {e!s}")
+        raise e
 
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda handler for DST switch service.
 
@@ -104,7 +114,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return {
                 "statusCode": 200,
                 "body": json.dumps(
-                    {"message": f'Successfully updated schedule for {"EDT" if is_dst else "EST"}'}
+                    {"message": f"Successfully updated schedule for {'EDT' if is_dst else 'EST'}"}
                 ),
             }
 
@@ -115,5 +125,5 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        logger.error(f"Error in DST handler: {str(e)}")
+        logger.error(f"Error in DST handler: {e!s}")
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}

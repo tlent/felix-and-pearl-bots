@@ -3,70 +3,21 @@ Transform: AWS::Serverless-2016-10-31
 
 Description: FelixPearlBot
 
-Parameters:
-  felixDiscordWebhookUrl:
-    Type: String
-    Description: felix-discord-webhook
-    NoEcho: true
-  pearlDiscordWebhookUrl:
-    Type: String
-    Description: pearl-discord-webhook
-    NoEcho: true
-  anthropicApiKey:
-    Type: String
-    Description: anthropic-api-key
-    NoEcho: true
-  weatherApiKey:
-    Type: String
-    Description: weather-api-key
-    NoEcho: true
-  weatherLocation:
-    Type: String
-    Description: weather-location
-    NoEcho: true
-  weatherLat:
-    Type: String
-    Description: weather-latitude
-    NoEcho: true
-  weatherLon:
-    Type: String
-    Description: weather-longitude
-    NoEcho: true
-  birthdaysConfig:
-    Type: String
-    Description: birthdays-json-config
-    NoEcho: true
-  felixPearlTz:
-    Type: String
-    Description: felix-pearl-timezone
-    NoEcho: true
-  dstSwitchTz:
-    Type: String
-    Description: dst-switch-timezone
-    NoEcho: true
-
 Resources:
   FelixPearlBotFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src
-      Handler: lambda_function.lambda_handler
+      CodeUri: .
+      Handler: src.lambda_function.lambda_handler
       Runtime: python3.13
       Timeout: 60
       MemorySize: 512
       Environment:
         Variables:
-          ANTHROPIC_API_KEY: !Ref anthropicApiKey
-          FELIX_DISCORD_WEBHOOK_URL: !Ref felixDiscordWebhookUrl
-          PEARL_DISCORD_WEBHOOK_URL: !Ref pearlDiscordWebhookUrl
-          WEATHER_API_KEY: !Ref weatherApiKey
-          WEATHER_LOCATION: !Ref weatherLocation
-          WEATHER_LAT: !Ref weatherLat
-          WEATHER_LON: !Ref weatherLon
-          BIRTHDAYS_CONFIG: !Ref birthdaysConfig
-          TZ: !Ref felixPearlTz
+          SECRET_ARN: arn:aws:secretsmanager:us-east-1:538569249438:secret:FelixPearlBotSecrets-uJg6rb
       Policies:
         - AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
       Events:
         DailyScheduleEDT:
           Type: Schedule
@@ -81,47 +32,16 @@ Resources:
             Description: Daily schedule for EST
             Enabled: false
 
-  DSTSwitchRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: DSTSwitchInlinePolicy
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - events:PutRule
-                  - events:PutTargets
-                  - events:DeleteRule
-                  - events:RemoveTargets
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: "*"
-
   DSTSwitchFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src
-      Handler: dst_switch.lambda_handler
+      CodeUri: .
+      Handler: src.dst_switch.lambda_handler
       Runtime: python3.13
       Timeout: 30
       MemorySize: 128
-      Role: !GetAtt DSTSwitchRole.Arn
-      Environment:
-        Variables:
-          TZ: !Ref dstSwitchTz
+      Policies:
+        - AWSLambdaBasicExecutionRole
       Events:
         DSTCheck:
           Type: Schedule

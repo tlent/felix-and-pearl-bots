@@ -1,115 +1,111 @@
-from typing import Dict, List, Optional, TypedDict
-import pytz
-from datetime import datetime
 import logging
 
-import anthropic
+from anthropic.types import TextBlock
 
-from config import FELIX, PEARL, env
-from prompts import (
+from src.config import Config
+from src.prompts import (
+    FELIX,
     NATIONAL_DAYS_PROMPT,
+    PEARL,
     WEATHER_PROMPT,
+    CharacterInfo,
+    get_system_prompt,
 )
-from services.national_days import NationalDay
+from src.services.national_days import NationalDay
+from src.services.weather import (
+    PRECIPITATION_CHANCE_THRESHOLD,
+    DailyForecast,
+    WeatherData,
+)
 
 logger = logging.getLogger(__name__)
 
-# Initialize Anthropic client
-claude = anthropic.Anthropic(api_key=env.anthropic_api_key)
 
-
-class CharacterInfo(TypedDict):
-    name: str
-    full_name: str
-    description: str
-
-
-def generate_message_with_claude(prompt: str, character: CharacterInfo) -> str:
+def generate_message_with_claude(config: Config, prompt: str, character: CharacterInfo) -> str:
     """
     Generate a message using Claude from a character's perspective.
     Args:
+        config: Config object
         prompt: The prompt to send to Claude
         character: Dictionary containing character information
+    Returns:
+        The generated message or None if there's an error.
     """
-    response = claude.messages.create(
+    response = config.claude_client.messages.create(
         model="claude-3-5-haiku-latest",
         max_tokens=1000,
-        temperature=0.7,
-        system=f"You are {character['full_name']}, {character['description']}.",
+        temperature=0.75,
+        system=get_system_prompt(character),
         messages=[{"role": "user", "content": prompt}],
     )
-    return response.content[0].text
+    if isinstance(response.content[0], TextBlock):
+        return response.content[0].text
+    else:
+        logger.error(f"Unexpected response content: {response.content[0]}")
+        return str(response.content[0])
 
 
-def generate_weather_message(weather_data: Dict) -> Optional[str]:
-    """
-    Generate a weather message using Claude with detailed weather data.
-    Args:
-        weather_data: Dictionary containing detailed weather information
-    Returns:
-        The generated weather message or None if there's an error.
-    """
+def format_upcoming_forecast(upcoming: list[DailyForecast]) -> str:
+    """Format the upcoming forecast days into a readable string."""
+    forecast_lines = []
+    for day in upcoming:
+        precipitation_info = []
+        if day["pop"] > PRECIPITATION_CHANCE_THRESHOLD:
+            if day["rain"] > 0:
+                precipitation_info.append(f"{day['pop']:.0%} chance of rain")
+            if day["snow"] > 0:
+                precipitation_info.append(f"{day['pop']:.0%} chance of snow")
+
+        forecast_lines.append(
+            f"- {day['date']:%A}: High {day['high']}°F, Low {day['low']}°F"
+            f" - {day['description'].upper()}"
+            f"{f' ({", ".join(precipitation_info)})' if precipitation_info else ''}"
+        )
+    return "\n".join(forecast_lines)
+
+
+def generate_weather_message(config: Config, weather_data: WeatherData) -> str | None:
+    """Generate a weather message using Claude with the provided weather data."""
     try:
-        # Format sunrise/sunset times
-        ny_tz = pytz.timezone("America/New_York")
-        sunrise_dt = datetime.fromtimestamp(weather_data["sunrise"], tz=pytz.UTC).astimezone(ny_tz)
-        sunset_dt = datetime.fromtimestamp(weather_data["sunset"], tz=pytz.UTC).astimezone(ny_tz)
+        # Format the upcoming forecast section
+        upcoming_forecast = format_upcoming_forecast(weather_data["upcoming"])
 
-        # Format the detailed weather data for the prompt
-        formatted_data = {
-            "full_name": PEARL["full_name"],
-            "description": PEARL["description"],
-            "location": env.weather_location,
-            "temperature": f"{weather_data['temp']}°F",
-            "feels_like": f"{weather_data['feels_like']}°F",
-            "weather_description": weather_data["description"],
-            "humidity": f"{weather_data['humidity']}%",
-            "pressure": f"{weather_data['pressure']} hPa",
-            "wind_speed": f"{weather_data['wind_speed']} mph",
-            "wind_gust_line": (
-                f" (gusts up to {weather_data['wind_gust']} mph)"
-                if "wind_gust" in weather_data
-                else ""
-            ),
-            "clouds": f"{weather_data['clouds']}%",
-            "visibility": f"{weather_data['visibility']} m",
-            "temp_max": f"{weather_data['temp_max']}°F",
-            "temp_min": f"{weather_data['temp_min']}°F",
-            "morning_weather": weather_data["morning_weather"],
-            "day_weather": weather_data["day_weather"],
-            "evening_weather": weather_data["evening_weather"],
-            "night_weather": weather_data["night_weather"],
-            "pop": f"{weather_data['pop'] * 100}%",  # Convert to percentage
-            "rain_line": (
-                f" Expect rain: {weather_data['rain']} mm"
-                if "rain" in weather_data
-                else ""
-            ),
-            "snow_line": (
-                f" Expect snow: {weather_data['snow']} mm"
-                if "snow" in weather_data
-                else ""
-            ),
-            "sunrise": sunrise_dt.strftime("%I:%M %p"),
-            "sunset": sunset_dt.strftime("%I:%M %p"),
-        }
+        # Format rain and snow information for today
+        rain_info = (
+            f", {weather_data['today']['rain']}mm rain expected"
+            if weather_data["today"]["rain"] > 0
+            else ""
+        )
+        snow_info = (
+            f", {weather_data['today']['snow']}mm snow expected"
+            if weather_data["today"]["snow"] > 0
+            else ""
+        )
 
-        logger.info("🌤️ Weather data being sent to AI:")
-        for key, value in formatted_data.items():
-            logger.info(f"  {key}: {value}")
-
-        prompt = WEATHER_PROMPT.format(**formatted_data)
-        return generate_message_with_claude(prompt, PEARL)
-
+        prompt = WEATHER_PROMPT.format(
+            full_name=PEARL["full_name"],
+            description=PEARL["description"],
+            location=config.weather_location,
+            current=weather_data["current"],
+            today=weather_data["today"],
+            upcoming_forecast=upcoming_forecast,
+            sunrise=weather_data["sunrise"],
+            sunset=weather_data["sunset"],
+            moon_phase=weather_data["moon_phase"],
+            rain_info=rain_info,
+            snow_info=snow_info,
+        )
+        return generate_message_with_claude(config, prompt, PEARL)
     except Exception as e:
-        logger.error(f"Error generating weather message: {str(e)}")
+        logger.error(f"Error generating weather message: {e!s}")
         return None
 
 
-def generate_national_days_message(national_days: List[NationalDay]) -> Optional[str]:
+def generate_national_days_message(config: Config, national_days: list[NationalDay]) -> str | None:
     """
     Generate a national days message using Claude.
     Args:
+        config: Config object
         national_days: List of NationalDay objects
     Returns:
         The generated national days message or None if there's an error.
@@ -121,8 +117,8 @@ def generate_national_days_message(national_days: List[NationalDay]) -> Optional
             full_name=FELIX["full_name"], description=FELIX["description"], days_text=days_text
         )
 
-        return generate_message_with_claude(prompt, FELIX)
+        return generate_message_with_claude(config, prompt, FELIX)
 
     except Exception as e:
-        logger.error(f"Error generating national days message: {str(e)}")
+        logger.error(f"Error generating national days message: {e!s}")
         return None

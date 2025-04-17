@@ -1,6 +1,5 @@
-from datetime import datetime
-from typing import List, Optional, Tuple
 import logging
+from datetime import datetime
 
 import pytz
 import requests
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 class NationalDay:
     """Represents a national day with its name, URL, and optional occurrence text."""
 
-    def __init__(self, name: str, url: str, occurrence_text: Optional[str] = None):
+    def __init__(self, name: str, url: str, occurrence_text: str | None = None):
         """
         Initialize a NationalDay instance.
 
@@ -26,7 +25,7 @@ class NationalDay:
         self.occurrence_text = occurrence_text
 
 
-def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
+def get_national_days() -> tuple[list[NationalDay], str | None]:
     """
     Scrapes national days from nationaldaycalendar.com.
 
@@ -68,19 +67,20 @@ def get_national_days() -> Tuple[List[NationalDay], Optional[str]]:
         for card in cards:
             name = card.text.strip()
             url = card["href"]
+            url = url[0] if isinstance(url, list) else url
             national_days.append(NationalDay(name=name, url=url))
 
         return national_days, None
 
     except requests.exceptions.RequestException as e:
-        error_msg = f"Failed to fetch national days: {str(e)}"
+        error_msg = f"Failed to fetch national days: {e!s}"
         logger.error(f"❌ {error_msg}")
         return [], error_msg
     except (AttributeError, KeyError) as e:
-        error_msg = f"Error parsing national days HTML: {str(e)}"
+        error_msg = f"Error parsing national days HTML: {e!s}"
         logger.error(f"❌ {error_msg}")
         return [], error_msg
     except Exception as e:
-        error_msg = f"Unexpected error processing national days: {str(e)}"
+        error_msg = f"Unexpected error processing national days: {e!s}"
         logger.error(f"❌ {error_msg}")
         return [], error_msg

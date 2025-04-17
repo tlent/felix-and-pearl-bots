@@ -8,31 +8,46 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.13"
-boto3 = "^1.34.0"
-anthropic = "^0.18.0"
+boto3 = "^1.34.69"
+anthropic = "^0.49.0"
 requests = "^2.31.0"
-python-dateutil = "^2.8.2"
-beautifulsoup4 = "^4.12.0"
-pytz = "^2024.1"
+python-dateutil = "^2.9.0"
+beautifulsoup4 = "^4.12.3"
+pytz = "^2025.2"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
-flake8 = "^7.0.0"
-pytest = "^8.0.0"
-black = "^24.0.0"
-isort = "^5.13.0"
-mypy = "^1.8.0"
+ruff = "^0.11"
+types-requests = "^2.31.0.20240311"
+types-python-dateutil = "^2.8.19.14"
+types-pytz = "^2025.2.0.20250326"
+types-boto3 = "^1.37.35"
+types-beautifulsoup4 = "^4.12.0.20250204"
 
-[tool.black]
+[tool.ruff]
 line-length = 100
-target-version = ['py313']
+target-version = "py313"
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "PL",  # pylint
+    "RUF", # ruff-specific
+]
+ignore = ["E203", "E501"] # Ignore line length and whitespace before ':' errors
+exclude = [".git", "__pycache__", "build", "dist", "venv", ".aws-sam"]
 
-[tool.isort]
-profile = "black"
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
 
-[tool.mypy]
-files = ["src"]
-strict = true
+[tool.ruff.per-file-ignores]
+"tests/*" = ["S101"] # Allow assert statements in tests

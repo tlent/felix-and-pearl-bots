@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-# Source AWS configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/aws-config.sh"
+source "aws-scripts/aws-config.sh"
 
-# Get actual function name
-FUNCTION_NAME=$(get_function_name)
+mkdir -p .aws-sam/output
 
+echo "🚀 Invoking function ${PHYSICAL_FUNCTION_NAME}..."
 aws lambda invoke \
     --profile "${AWS_PROFILE}" \
-    --function-name "${FUNCTION_NAME}"
+    --function-name "${PHYSICAL_FUNCTION_NAME}" \
+    .aws-sam/output/lambda-response.json
+
+echo "📝 Response saved to .aws-sam/output/lambda-response.json"

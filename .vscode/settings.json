@@ -1,0 +1,24 @@
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "always"
+  },
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.inlayHints.variableTypes": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportGeneralTypeIssues": "error",
+    "reportOptionalMemberAccess": "error",
+    "reportOptionalSubscript": "error",
+    "reportOptionalCall": "error",
+    "reportOptionalIterable": "error",
+    "reportOptionalContextManager": "error",
+    "reportOptionalOperand": "error"
+  },
+  "ruff.enable": true,
+  "ruff.importStrategy": "fromEnvironment",
+  "ruff.lint.enable": true
+}

@@ -1,8 +1,10 @@
-import requests
-from typing import TypedDict
 import logging
+from typing import TypedDict
 
-from config import env, FELIX, PEARL
+import requests
+
+from src.config import Config
+from src.prompts import FELIX, PEARL
 
 logger = logging.getLogger(__name__)
 
@@ -11,19 +13,17 @@ class WebhookResponse(TypedDict):
     content: str
 
 
-def send_felix_message(content: str) -> bool:
+def send_felix_message(config: Config, content: str) -> bool:
     """Send a message as Felix."""
-    return send_message(content, FELIX["name"], env.felix_webhook_url)
+    return send_message(content, FELIX["name"], config.felix_webhook_url)
 
 
-def send_pearl_message(content: str) -> bool:
+def send_pearl_message(config: Config, content: str) -> bool:
     """Send a message as Pearl."""
-    return send_message(content, PEARL["name"], env.pearl_webhook_url)
+    return send_message(content, PEARL["name"], config.pearl_webhook_url)
 
 
-def send_message(
-    content: str, character_name: str, webhook_url: str
-) -> bool:
+def send_message(content: str, character_name: str, webhook_url: str) -> bool:
     """
     Send a message to Discord using the provided webhook URL.
     Returns True if successful, False otherwise.
@@ -41,8 +41,8 @@ def send_message(
         return True
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"❌ Failed to send {character_name}'s message: {str(e)}")
+        logger.error(f"❌ Failed to send {character_name}'s message: {e!s}")
         return False
     except Exception as e:
-        logger.error(f"❌ Error sending {character_name}'s message: {str(e)}")
+        logger.error(f"❌ Error sending {character_name}'s message: {e!s}")
         return False

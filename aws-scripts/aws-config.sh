@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 
-# AWS Configuration
-export AWS_PROFILE="tlent-personal"
-export STACK_NAME="felix-pearl-bot"
+# Default to 'default' profile if not set
+export AWS_PROFILE="${AWS_PROFILE:-tlent-personal}"
 
-# Function name pattern (used to find the actual function name)
-export FUNCTION_NAME_PATTERN="felix-pearl-bot-FelixPearlBotFunction"
+# Default stack name if not set
+export STACK_NAME="${STACK_NAME:-felix-pearl-bots}"
 
-# Get the actual function name from AWS
-get_function_name() {
-    aws lambda list-functions --profile "$AWS_PROFILE" | 
-        jq -r ".Functions[] | select(.FunctionName | startswith(\"$FUNCTION_NAME_PATTERN\")) | .FunctionName"
-} 
+# Logical function name (used for local invocation and deployment)
+export LOGICAL_FUNCTION_NAME="FelixPearlBotFunction"
+
+# Load physical function name if available (used for AWS invocation)
+if [ -f ".aws-sam/function-name.sh" ]; then
+    source ".aws-sam/function-name.sh"
+fi
+
+# Secret name matches stack name by default
+export SECRET_NAME="${STACK_NAME}-secrets"

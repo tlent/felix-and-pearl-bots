@@ -58,11 +58,6 @@ integration for smart, engaging messaging.
   Manages sensitive data using AWS Parameter Store, ensuring secure and
   centralized configuration.
 
-- **Structured Logging:**  
-  Implements comprehensive structured logging with AWS Lambda request ID
-  tracking, enabling better observability and debugging across all bot
-  operations.
-
 - **Streamlined Deployment:**  
   Features a simplified deployment process with AWS SAM, making it easy to
   deploy updates and manage infrastructure as code.
@@ -75,16 +70,26 @@ git clone https://github.com/tlent/felix-and-pearl-bots.git
 cd felix-and-pearl-bots
 poetry install
 
-# Configure (copy sample and add your keys)
-cp example.env.json env.json
-# Edit env.json with your API keys and webhook URLs
+# Configure secrets (copy sample and add your keys)
+cp example.secrets.json secrets.json
+# Edit secrets.json with your API keys and webhook URLs
 
-# Run locally
+# Optional: Configure AWS (defaults to 'default' profile)
+export AWS_PROFILE="your-profile"  # Optional
+export STACK_NAME="your-stack"     # Optional
+
+# Run locally to test
 ./aws-scripts/invoke-local.sh
 
-# Deploy to AWS
+# Deploy to AWS (creates/updates secrets automatically)
 ./aws-scripts/deploy.sh
 ```
+
+That's it! The deployment script will automatically:
+
+- Create or update your AWS Secrets Manager secret
+- Build and deploy your application
+- Set up all necessary AWS resources
 
 ## 📁 Project Structure
 
@@ -105,11 +110,13 @@ cp example.env.json env.json
 │   ├── discord.py          # Discord webhook and message handling
 │   ├── dst_switch.py       # Timezone, DST, and AWS EventBridge management
 │   ├── lambda_function.py  # AWS Lambda entry point and service coordination
+│   ├── logging.py          # Structured logging configuration
 │   └── prompts.py          # AI prompt templates and personality settings
-├── example.env.json        # Example environment configuration
-├── pyproject.toml          # Poetry package management
-├── requirements.txt        # AWS Lambda runtime dependencies
-└── template.yaml           # AWS SAM infrastructure definition
+├── example.secrets.json    # Example secrets configuration
+├── secrets.json           # Local secrets configuration (gitignored)
+├── pyproject.toml         # Poetry package management
+├── requirements.txt       # AWS Lambda runtime dependencies
+└── template.yaml          # AWS SAM infrastructure definition
 ```
 
 ## 🏗️ Architecture Overview
@@ -142,13 +149,14 @@ The project features a robust Daylight Saving Time system that:
 
 ## 🔒 Security & Best Practices
 
-- **Secure Environment Management:**  
-  All sensitive information (webhook URLs, API keys) is stored securely via AWS
-  Parameter Store and referenced through environment variables.
+- **Secure Secrets Management:**  
+  All sensitive information (webhook URLs, API keys) is stored securely in AWS Secrets Manager, ensuring centralized and encrypted storage of credentials.
+
+- **Local Development Security:**  
+  Local development uses a `secrets.json` file (gitignored) that mirrors the structure of AWS Secrets Manager, allowing for secure local testing without exposing credentials.
 
 - **Scalable and Maintainable:**  
-  The serverless design minimizes infrastructure overhead and maintenance,
-  allowing for rapid iteration and scalability.
+  The serverless design minimizes infrastructure overhead and maintenance, allowing for rapid iteration and scalability.
 
 ## 🛠️ Development
 
@@ -176,41 +184,34 @@ The project features a robust Daylight Saving Time system that:
    poetry install
    ```
 
-3. **Configure Environment:**
+3. **Configure Secrets:**
 
-   Create `env.json` based on `example.env.json` with your credentials and
+   Create `secrets.json` based on `example.secrets.json` with your credentials and
    settings:
 
    ```json
    {
-     "FelixPearlBotFunction": {
-       "anthropicApiKey": "your-claude-api-key",
-       "felixDiscordWebhookUrl": "your-felix-webhook-url",
-       "pearlDiscordWebhookUrl": "your-pearl-webhook-url",
-       "weatherApiKey": "your-openweathermap-key",
-       "weatherLocation": "City,State,Country",
-       "weatherLat": "0.0",
-       "weatherLon": "0.0",
-       "birthdaysConfig": "MM-DD:Name,MM-DD:Name",
-       "tz": "America/New_York"
-     },
-     "DSTSwitchFunction": {
-       "TZ": "America/New_York"
-     }
+     "FELIX_DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/your-felix-webhook-id/your-felix-webhook-token",
+     "PEARL_DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/your-pearl-webhook-id/your-pearl-webhook-token",
+     "ANTHROPIC_API_KEY": "sk-ant-api03-your-claude-api-key",
+     "WEATHER_API_KEY": "your-openweathermap-api-key",
+     "WEATHER_LOCATION": "City,State,Country",
+     "WEATHER_LAT": "0.0",
+     "WEATHER_LON": "0.0",
+     "BIRTHDAYS_CONFIG": "MMDD:Name,MMDD:Name",
+     "TZ": "America/New_York"
    }
    ```
 
-   Configure your AWS settings in `aws-scripts/aws-config.sh`:
+4. **Set Up AWS Secrets Manager:**
+
+   Create a secret in AWS Secrets Manager with your configuration:
 
    ```bash
-   # AWS profile to use for deployments and invocations
-   AWS_PROFILE="your-aws-profile-name"
-
-   # Name of the CloudFormation stack
-   STACK_NAME="felix-pearl-bot"
+   aws secretsmanager create-secret --name FelixPearlBotSecrets --secret-string file://secrets.json
    ```
 
-4. **Run Locally:**
+5. **Run Locally:**
 
    Test the bot locally using the following:
 
@@ -237,6 +238,8 @@ The deployment process automatically handles:
 - IAM role configuration
 - CloudWatch logging setup
 - DST-aware scheduling
+
+Note: Before using the AWS scripts, configure your AWS profile and stack name in `aws-scripts/aws-config.sh`.
 
 ## 📄 License
 

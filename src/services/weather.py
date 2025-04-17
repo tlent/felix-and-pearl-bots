@@ -1,114 +1,138 @@
 import logging
-from typing import Optional, TypedDict
-import requests
-import json
 from datetime import datetime
-import pytz
+from typing import TypedDict
 
-from config import env
+import pytz
+import requests
+
+from src.config import Config
 
 logger = logging.getLogger(__name__)
 
-# Weather API configuration
-WEATHER_API_KEY = env.weather_api_key
-WEATHER_API_URL = (
-    f"https://api.openweathermap.org/data/3.0/onecall"
-    f"?lat={env.weather_lat}&lon={env.weather_lon}"
-    f"&appid={WEATHER_API_KEY}&units=imperial"
-    f"&exclude=alerts"
-)
+# Constants
+PRECIPITATION_CHANCE_THRESHOLD = 0.2  # Minimum probability to show rain chance in forecast
 
 
-class WeatherData(TypedDict):
+class CurrentWeather(TypedDict):
     temp: float
     feels_like: float
     humidity: int
     wind_speed: float
-    description: str
-    pressure: int
-    clouds: int
-    visibility: int
     wind_gust: float
-    temp_max: float
-    temp_min: float
-    morning_weather: str
-    day_weather: str
-    evening_weather: str
-    night_weather: str
+    description: str
+    clouds: int
+
+
+class DailyWeather(TypedDict):
+    high: float
+    low: float
+    feels_like: dict[str, float]  # day, night, eve, morn
+    description: str
+    pop: float  # probability of precipitation
+    rain: float
+    snow: float
+
+
+class DailyForecast(TypedDict):
+    date: datetime
+    high: float
+    low: float
+    description: str
     pop: float
     rain: float
     snow: float
-    sunrise: int
-    sunset: int
 
 
-def get_weather() -> Optional[WeatherData]:
+class WeatherData(TypedDict):
+    current: CurrentWeather
+    today: DailyWeather
+    upcoming: list[DailyForecast]
+    sunrise: datetime
+    sunset: datetime
+    moonrise: datetime
+    moonset: datetime
+    moon_phase: float
+
+
+def get_weather(config: Config) -> WeatherData | None:
     """
     Get current weather data and daily forecast from OpenWeatherMap API.
-
-    Returns:
-        WeatherData dictionary if successful, None if there's an error.
-        The dictionary contains all weather fields with appropriate default values.
+    Returns WeatherData if successful, None if there's an error.
     """
     try:
-        response = requests.get(WEATHER_API_URL, timeout=10)
+        response = requests.get(
+            "https://api.openweathermap.org/data/3.0/onecall",
+            params={
+                "lat": config.weather_lat,
+                "lon": config.weather_lon,
+                "appid": config.weather_api_key,
+                "units": "imperial",
+                "exclude": "alerts,minutely,hourly",
+            },
+            timeout=10,
+        )
         response.raise_for_status()
         data = response.json()
 
-        # Extract relevant current weather data
-        current = data.get("current", {})
-        daily = data.get("daily", [{}])[0]  # Get the first day's forecast
+        # Get timezone from API response
+        tz = pytz.timezone(data["timezone"])
 
-        # Convert sunrise/sunset timestamps to local time
-        ny_tz = pytz.timezone("America/New_York")
-        sunrise_utc = datetime.fromtimestamp(daily.get("sunrise", 0), tz=pytz.UTC)
-        sunset_utc = datetime.fromtimestamp(daily.get("sunset", 0), tz=pytz.UTC)
+        # Convert timestamps to datetime objects
+        current = data["current"]
+        daily = data["daily"]  # Now using full daily array
+        today = daily[0]  # First day's forecast
 
-        sunrise_local = sunrise_utc.astimezone(ny_tz)
-        sunset_local = sunset_utc.astimezone(ny_tz)
+        # Process upcoming days (next 5 days)
+        upcoming_days = []
+        for day in daily[1:6]:  # Get next 5 days
+            upcoming_days.append(
+                DailyForecast(
+                    date=datetime.fromtimestamp(day["dt"], tz=tz),
+                    high=round(day["temp"]["max"]),
+                    low=round(day["temp"]["min"]),
+                    description=day["weather"][0]["description"],
+                    pop=round(day["pop"], 1),
+                    rain=round(day.get("rain", 0.0)),
+                    snow=round(day.get("snow", 0.0)),
+                )
+            )
 
-        logger.info(f"🌅 Sunrise UTC: {sunrise_utc.strftime('%H:%M %Z')}")
-        logger.info(f"🌅 Sunrise Local: {sunrise_local.strftime('%H:%M %Z')}")
-        logger.info(f"🌇 Sunset UTC: {sunset_utc.strftime('%H:%M %Z')}")
-        logger.info(f"🌇 Sunset Local: {sunset_local.strftime('%H:%M %Z')}")
-
-        weather_data = {
-            "temp": current.get("temp", 0.0),
-            "feels_like": current.get("feels_like", 0.0),
-            "humidity": current.get("humidity", 0),
-            "wind_speed": current.get("wind_speed", 0.0),
-            "description": current.get("weather", [{}])[0].get("description", ""),
-            "pressure": current.get("pressure", 0),
-            "clouds": current.get("clouds", 0),
-            "visibility": current.get("visibility", 0),
-            "wind_gust": current.get("wind_gust", 0.0),
-            # Full-day forecast
-            "temp_max": daily.get("temp", {}).get("max", 0.0),
-            "temp_min": daily.get("temp", {}).get("min", 0.0),
-            "morning_weather": daily.get("weather", [{}])[0].get("description", ""),
-            "day_weather": daily.get("weather", [{}])[0].get("description", ""),
-            "evening_weather": daily.get("weather", [{}])[0].get("description", ""),
-            "night_weather": daily.get("weather", [{}])[0].get("description", ""),
-            "pop": daily.get("pop", 0.0),  # Probability of precipitation
-            "rain": daily.get("rain", 0.0),
-            "snow": daily.get("snow", 0.0),
-            # Sun times
-            "sunrise": int(sunrise_local.timestamp()),
-            "sunset": int(sunset_local.timestamp()),
-        }
-
-        logger.info("🌤️ Successfully fetched weather data")
-        return weather_data
+        # Format and structure the weather data to make it engaging and on-brand with Felix and Pearl
+        return WeatherData(
+            current=CurrentWeather(
+                temp=round(current["temp"]),
+                feels_like=round(current["feels_like"]),
+                humidity=current["humidity"],
+                wind_speed=round(current["wind_speed"]),
+                wind_gust=round(current.get("wind_gust", 0.0)),
+                description=current["weather"][0]["description"],
+                clouds=current["clouds"],
+            ),
+            today=DailyWeather(
+                high=round(today["temp"]["max"]),
+                low=round(today["temp"]["min"]),
+                feels_like={
+                    "day": round(today["feels_like"]["day"]),
+                    "night": round(today["feels_like"]["night"]),
+                    "eve": round(today["feels_like"]["eve"]),
+                    "morn": round(today["feels_like"]["morn"]),
+                },
+                description=today["weather"][0]["description"],
+                pop=round(today["pop"], 1),
+                rain=round(today.get("rain", 0.0)),
+                snow=round(today.get("snow", 0.0)),
+            ),
+            upcoming=upcoming_days,
+            sunrise=datetime.fromtimestamp(current["sunrise"], tz=tz),
+            sunset=datetime.fromtimestamp(current["sunset"], tz=tz),
+            moonrise=datetime.fromtimestamp(today["moonrise"], tz=tz),
+            moonset=datetime.fromtimestamp(today["moonset"], tz=tz),
+            moon_phase=today["moon_phase"],
+        )
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"❌ Failed to fetch weather data: {str(e)}")
-        return None
-    except (KeyError, IndexError) as e:
-        logger.error(f"❌ Error parsing weather API response: {str(e)}")
-        return None
-    except json.JSONDecodeError as e:
-        logger.error(f"❌ Invalid JSON response from weather API: {str(e)}")
+        logger.error(f"❌ Failed to fetch weather data: {e!s}")
         return None
     except Exception as e:
-        logger.error(f"❌ Unexpected error processing weather data: {str(e)}")
+        logger.error(f"❌ Error processing weather data: {e!s}")
         return None
