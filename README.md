@@ -19,6 +19,7 @@ integration for smart, engaging messaging.
 - [🏗️ Architecture Overview](#%EF%B8%8F-architecture-overview)
 - [🔒 Security & Best Practices](#-security--best-practices)
 - [🛠️ Development](#%EF%B8%8F-development)
+- [🔮 Future Enhancements](#-future-enhancements)
 - [📄 License](#-license)
 
 ---
@@ -253,6 +254,23 @@ The deployment process automatically handles:
 
 Note: Before using the AWS scripts, configure your AWS profile and stack name in
 `aws-scripts/aws-config.sh`.
+
+## 🔮 Future Enhancements
+
+### Testing Infrastructure
+
+- Implement comprehensive test suite covering core functionality
+- Add unit tests for service modules, DST handling, and AI integration
+- Include integration tests for AWS services and Discord webhooks
+- Set up CI/CD pipeline with automated testing
+
+### Message Generation Pipeline
+
+- Decouple message generation from delivery for better reliability
+- Implement pre-generation system with AWS S3 storage
+- Add preview functionality with email notifications
+- Create approval workflow with regenerate capability
+- Enable batch generation of messages for multiple days
 
 ## 📄 License
 
