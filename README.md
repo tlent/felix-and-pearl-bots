@@ -55,8 +55,9 @@ integration for smart, engaging messaging.
   context-aware messaging.
 
 - **Secure Configuration:**  
-  Manages sensitive data using AWS Parameter Store, ensuring secure and
-  centralized configuration.
+  Manages sensitive data using AWS Secrets Manager with automatic secret
+  rotation and IAM-based access control, ensuring secure and centralized
+  configuration management.
 
 - **Streamlined Deployment:**  
   Features a simplified deployment process with AWS SAM, making it easy to
@@ -131,8 +132,9 @@ That's it! The deployment script will automatically:
   Provides Daylight Saving Time-aware scheduling, ensuring messages are
   dispatched precisely when intended.
 
-- **AWS Parameter Store:**  
-  Handles secure storage of environment variables and secrets.
+- **AWS Secrets Manager:**  
+  Handles secure storage of environment variables and secrets, with automatic
+  rotation and access control.
 
 - **Amazon CloudWatch:**  
   Offers real-time monitoring and logging, vital for observability and
@@ -142,21 +144,31 @@ That's it! The deployment script will automatically:
 
 The project features a robust Daylight Saving Time system that:
 
-- Automatically detects and adapts to Daylight Saving Time transitions.
-- Maintains consistent execution at 7 AM Eastern Time.
+- Maintains consistent 7 AM Eastern Time execution through dual EventBridge
+  schedules:
+  - `DailyScheduleEDT`: 7 AM EDT (11:00 UTC)
+  - `DailyScheduleEST`: 7 AM EST (12:00 UTC)
+- Automatically switches between schedules via a dedicated DST check function
+  that runs daily at 10:00 UTC
 - Accurately handles both spring-forward and fall-back transitions using
-  Python's `zoneinfo` module.
+  Python's `zoneinfo` module
+- Ensures zero downtime during DST transitions through automated schedule
+  management
 
 ## 🔒 Security & Best Practices
 
 - **Secure Secrets Management:**  
-  All sensitive information (webhook URLs, API keys) is stored securely in AWS Secrets Manager, ensuring centralized and encrypted storage of credentials.
+  All sensitive information (webhook URLs, API keys) is stored securely in AWS
+  Secrets Manager, ensuring centralized and encrypted storage of credentials.
 
 - **Local Development Security:**  
-  Local development uses a `secrets.json` file (gitignored) that mirrors the structure of AWS Secrets Manager, allowing for secure local testing without exposing credentials.
+  Local development uses a `secrets.json` file (gitignored) that mirrors the
+  structure of AWS Secrets Manager, allowing for secure local testing without
+  exposing credentials.
 
 - **Scalable and Maintainable:**  
-  The serverless design minimizes infrastructure overhead and maintenance, allowing for rapid iteration and scalability.
+  The serverless design minimizes infrastructure overhead and maintenance,
+  allowing for rapid iteration and scalability.
 
 ## 🛠️ Development
 
@@ -186,8 +198,8 @@ The project features a robust Daylight Saving Time system that:
 
 3. **Configure Secrets:**
 
-   Create `secrets.json` based on `example.secrets.json` with your credentials and
-   settings:
+   Create `secrets.json` based on `example.secrets.json` with your credentials
+   and settings:
 
    ```json
    {
@@ -239,7 +251,8 @@ The deployment process automatically handles:
 - CloudWatch logging setup
 - DST-aware scheduling
 
-Note: Before using the AWS scripts, configure your AWS profile and stack name in `aws-scripts/aws-config.sh`.
+Note: Before using the AWS scripts, configure your AWS profile and stack name in
+`aws-scripts/aws-config.sh`.
 
 ## 📄 License
 
